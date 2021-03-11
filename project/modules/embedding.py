@@ -32,7 +32,7 @@ class WordAndPositionalEmbedding(nn.Module):
         vocab_size: int,
         hidden_size: int,
         dropout: float = 0.0,
-        max_caption_length: int = 30,
+        max_caption_length: int = 60,
         padding_idx: int = 0,
     ):
         super().__init__()

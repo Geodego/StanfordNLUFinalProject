@@ -6,16 +6,19 @@ from project.models.rnn_speaker import ColorizedInputDescriber
 from project.models.transformer_based import TransformerDescriber
 from project.data.tokenizers import tokenize_example, represent_color_context
 from project.data.word_embedding import create_glove_embedding
+from project.utils.tools import save_model, load_model_states
 
 
 def get_trained_color_model(corpus_word_count=None, use_glove=True, tokenizer=tokenize_example,
-                            speaker=ColorizedInputDescriber, max_iter=None):
+                            speaker=ColorizedInputDescriber, max_iter=None, do_train=True):
     """
     Read the corpus, featurize utterances, modify color representation and return the trained model.
     :param corpus_word_count: used to get a reduced version of the corpus including only corpus_word_count utterances.
     :param use_glove: if true use glove embedding
     :param tokenizer: function used to tokenize the text
     :param speaker: Speaker model used for describing the targe color
+    :param max_iter:
+    :param do_train: if falsed return untrained model
     :return:
     {'model': model, 'seqs_test': seqs_test, 'colors_test': colors_test}
     """
@@ -28,7 +31,7 @@ def get_trained_color_model(corpus_word_count=None, use_glove=True, tokenizer=to
     rawcols, texts = zip(*[[ex.colors, ex.contents] for ex in examples])
 
     # split the data
-    rawcols_train, rawcols_test, texts_train, texts_test = train_test_split(rawcols, texts)
+    rawcols_train, rawcols_test, texts_train, texts_test = train_test_split(rawcols, texts, random_state=0)
 
     # tokenize the texts, and get the vocabulary from seqs_train
     seqs_train = [tokenizer(s) for s in texts_train]
@@ -58,20 +61,36 @@ def get_trained_color_model(corpus_word_count=None, use_glove=True, tokenizer=to
         kwargs['feedforward_size'] = 75
 
     model = speaker(vocab=vocab, embedding=embedding, early_stopping=True, **kwargs)
-    model.fit(cols_train, seqs_train)
+    if do_train:
+        model.fit(cols_train, seqs_train)
     output = {'model': model, 'seqs_test': seqs_test, 'colors_test': cols_test,
               'rawcols_test': rawcols_test, 'texts_test': texts_test}
     return output
 
 
-if __name__ == '__main__':
-    import os
-    import sys
-    from project.utils.utils import fix_random_seeds
+def train_and_save(model, corpus_word_count, file_name, max_iter=None):
+    output = get_trained_color_model(corpus_word_count=corpus_word_count, speaker=model, max_iter=max_iter)
+    trained_model = output['model'].encoder_decoder
+    save_model(trained_model, file_name)
+    return output
 
-    fix_random_seeds()
-    #output = get_trained_color_model(corpus_word_count=2, speaker=TransformerDescriber, max_iter=1)
-    output = get_trained_color_model(corpus_word_count=2, max_iter=1)
-    model, seqs_test, cols_test, rawcols_test, texts_test = output.values()
-    score = model.evaluate(cols_test, seqs_test)
-    print('\nscore model {}: {}'.format(1, score))
+
+if __name__ == '__main__':
+
+    speaker = ColorizedInputDescriber
+    output_unfit = get_trained_color_model(corpus_word_count=2, speaker=speaker, max_iter=1)
+    model_unfit = output_unfit['model']
+    output = train_and_save(speaker, corpus_word_count=2, max_iter=1, file_name='abc')
+    model_fitted = output['model']
+    if model_unfit.encoder_decoder is None:
+        model_unfit.build_graph()
+    encoder_decoder_loaded = load_model_states(model_unfit.encoder_decoder, file_name='abc')
+    model_loaded = model_unfit
+    model_loaded.encoder_decoder = encoder_decoder_loaded
+    cols_test = output['colors_test']
+    color = [cols_test[0]]
+    predict_unfit = model_unfit.predict(color)
+    predict_fitted = model_fitted.predict(color)
+    predict_loaded = model_loaded.predict(color)
+    pass
+

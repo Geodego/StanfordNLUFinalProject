@@ -78,6 +78,10 @@ class ColorizedEncoderDecoder(EncoderDecoder):
 
 class ColorizedInputDescriber(ContextualColorDescriber):
 
+    def __init__(self, vocab, color_dim=54, *args, **kwargs):
+        super().__init__(vocab, *args, **kwargs)
+        self.color_dim = color_dim
+
     def build_graph(self):
 
         # We didn't modify the encoder, so this is
@@ -100,6 +104,6 @@ class ColorizedInputDescriber(ContextualColorDescriber):
 
         self.embed_dim = decoder.embed_dim
         # Return a `ColorizedEncoderDecoder` that uses
-        # your encoder and decoder:
+        self.encoder_decoder = ColorizedEncoderDecoder(encoder, decoder)
 
-        return ColorizedEncoderDecoder(encoder, decoder)
+        return self.encoder_decoder

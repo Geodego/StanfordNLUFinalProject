@@ -1,0 +1,59 @@
+from pathlib import Path
+import sys
+import os
+import torch
+from torch import nn
+
+
+ROOT_DIRECTORY = 'StanfordNLUFinalProject'
+PROJECT_DIRECTORY = 'project'
+
+
+def get_root_path():
+    root_path = Path(sys.path[0].split(ROOT_DIRECTORY)[0] + ROOT_DIRECTORY)
+    return root_path
+
+
+def get_project_directory_path():
+    root_path = get_root_path()
+    project_path = os.path.join(root_path, PROJECT_DIRECTORY)
+    return project_path
+
+
+def get_directory_path(directory: str):
+    project_path = get_project_directory_path()
+    # list of project subdirectories
+    project_sub = [x for x in os.listdir(project_path) if os.path.isdir(os.path.join(project_path, x))]
+    if directory in project_sub:
+        path = os.path.join(project_path, directory)
+        return path
+    else:
+        raise Exception('{} is not a proper directory'.format(directory))
+
+
+def save_model(model: nn.Module, file_name: str):
+    """
+    Save a model state_dict in project/data/pretrained_models
+    :param model:
+    :param file_name: name of the file where the states will be saved with no extension. Should start with the name of
+    the class of the model followed by _. ex(EncoderDecoder_withglove)
+    :return:
+    """
+    data_path = get_directory_path('data')
+    file_path = os.path.join(data_path, 'pretrained_models/' + file_name + '.pt')
+    torch.save(model.state_dict(), file_path)
+
+
+def load_model_states(model: nn.Module, file_name: str):
+    """
+    load trained parameters of model, saved in file_name
+    :param model:
+    :param file_name: name of the file where the states are saved with no extension.
+    :return:
+    pretrained model
+    """
+    data_path = get_directory_path('data')
+    file_path = os.path.join(data_path, 'pretrained_models/' + file_name + '.pt')
+    model.load_state_dict(torch.load(file_path))
+    return model
+

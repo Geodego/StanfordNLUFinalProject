@@ -434,6 +434,7 @@ class ContextualColorDescriber(TorchModelBase):
         self.unk_index = self.vocab.index(UNK_SYMBOL)
         self.params += ['hidden_dim', 'embed_dim', 'embedding', 'freeze_embedding']
         self.loss = nn.CrossEntropyLoss()
+        self.encoder_decoder = None
 
     def build_dataset(self, color_seqs, word_seqs):
         """
@@ -483,8 +484,9 @@ class ContextualColorDescriber(TorchModelBase):
             freeze_embedding=self.freeze_embedding)
 
         self.embed_dim = decoder.embed_dim
+        self.encoder_decoder = EncoderDecoder(encoder, decoder)
 
-        return EncoderDecoder(encoder, decoder)
+        return self.encoder_decoder
 
     def predict(self, color_seqs, max_length=20, device=None):
         """
@@ -537,22 +539,20 @@ class ContextualColorDescriber(TorchModelBase):
             # Now move through the remaiming timesteps using the
             # previous timestep to predict the next one:
             for i in range(1, max_length):
-
-                #todo remove try escape used for debugging
-                try:
-                    output, hidden = self.model(
-                        color_seqs=color_seqs,
-                        word_seqs=decoder_input,
-                        seq_lengths=None,
-                        hidden=hidden)
-                except:
-                    pass
+                output, hidden = self.model(
+                    color_seqs=color_seqs,
+                    word_seqs=decoder_input,
+                    seq_lengths=None,
+                    hidden=hidden)
 
                 # Always take the highest probability token to
                 # be the prediction:
                 p = output.argmax(2)
-                preds.append(p)
-                decoder_input = p
+                # get the last word predicted
+                last_word = p[:, -1].reshape(-1, 1)
+                preds.append(last_word)  # todo: check modif was preds.append(p)
+                #todo check here used to be decoder_input = p not decoder_input = torch.concat((decoder_input, p), 1)
+                decoder_input = torch.cat((decoder_input, last_word), 1)
 
         # Convert all the predictions from indices to elements of
         # `self.vocab`:

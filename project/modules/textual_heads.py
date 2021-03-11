@@ -171,7 +171,7 @@ class TransformerTextualHead(TextualHead):
             dropout: float = 0.1,
             norm_type: str = "post",
             mask_future_positions: bool = True,
-            max_caption_length: int = 30,
+            max_caption_length: int = 60,
             padding_idx: int = 0,
     ):
         super().__init__(visual_feature_size, vocab_size, hidden_size)
@@ -349,7 +349,7 @@ class TransformerDecoder(TransformerTextualHead):
                 vocab_size=self.vocab_size,
                 hidden_size=self.textual_feature_size,
                 dropout=0.1,
-                max_caption_length=30,
+                max_caption_length=60,
                 padding_idx=0,
         )
         if self.freeze_embedding:

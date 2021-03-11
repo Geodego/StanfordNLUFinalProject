@@ -3,7 +3,6 @@ from ..modules.textual_heads import TransformerDecoder
 import torch
 
 
-
 class TransformerDescriber(ContextualColorDescriber):
     """
     Base color describer, encoder initializes embedding, doesn't handle the colorized feature of HW4 yet
@@ -58,10 +57,13 @@ class TransformerEncoderDecoder(EncoderDecoder):
         if seq_lengths is None and not self.training:
             # should mean we're in eval mode trying to calculate proba using the pretrained model. In that case each
             # sentence has only one token
-            seq_lengths = torch.ones(word_seqs.shape[0])
-        output_logits = self.decoder(visual_features=hidden, caption_tokens=word_seqs, caption_lengths=seq_lengths)
+            seq_lengths = torch.ones(word_seqs.shape[0]) * word_seqs.shape[1]
+        # todo: remove try except below, used for debugging
+        try:
+            output_logits = self.decoder(visual_features=hidden, caption_tokens=word_seqs, caption_lengths=seq_lengths)
+        except:
+            pass
         # output_logits.shape: [batch_size, max_num_word_in_batch, vocab size]
-
 
         if self.training:
             # Drop the final element:
