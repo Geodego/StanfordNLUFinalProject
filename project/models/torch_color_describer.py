@@ -352,6 +352,13 @@ class EncoderDecoder(nn.Module):
             return output, hidden
 
 
+class ColorAgent(TorchModelBase):
+    def __init__(self):
+        """
+        Ancestor of all colors agents. The primary interface to modeling contextual colors datasets.
+        """
+
+
 class ContextualColorDescriber(TorchModelBase):
     def __init__(self,
             vocab,
@@ -548,11 +555,8 @@ class ContextualColorDescriber(TorchModelBase):
                 # Always take the highest probability token to
                 # be the prediction:
                 p = output.argmax(2)
-                # get the last word predicted
-                last_word = p[:, -1].reshape(-1, 1)
-                preds.append(last_word)  # todo: check modif was preds.append(p)
-                #todo check here used to be decoder_input = p not decoder_input = torch.concat((decoder_input, p), 1)
-                decoder_input = torch.cat((decoder_input, last_word), 1)
+                preds.append(p)
+                decoder_input = p
 
         # Convert all the predictions from indices to elements of
         # `self.vocab`:
@@ -627,10 +631,18 @@ class ContextualColorDescriber(TorchModelBase):
                 batch_words = batch_words.to(device)
                 batch_lens = batch_lens.to(device)
 
-                output, _ = self.model(
-                    color_seqs=batch_colors,
-                    word_seqs=batch_words,
-                    seq_lengths=batch_lens)
+                # need to handle case of RNN based models returning an output and a hidden state and transformer based
+                # models returning just an output.
+                try:
+                    output, _ = self.model(
+                        color_seqs=batch_colors,
+                        word_seqs=batch_words,
+                        seq_lengths=batch_lens)
+                except ValueError:
+                    output = self.model(
+                        color_seqs=batch_colors,
+                        word_seqs=batch_words,
+                        seq_lengths=batch_lens)
 
                 probs = softmax(output)
                 probs = probs.cpu().numpy()

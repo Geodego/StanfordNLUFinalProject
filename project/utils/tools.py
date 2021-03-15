@@ -4,7 +4,6 @@ import os
 import torch
 from torch import nn
 
-
 ROOT_DIRECTORY = 'StanfordNLUFinalProject'
 PROJECT_DIRECTORY = 'project'
 
@@ -56,4 +55,27 @@ def load_model_states(model: nn.Module, file_name: str):
     file_path = os.path.join(data_path, 'pretrained_models/' + file_name + '.pt')
     model.load_state_dict(torch.load(file_path))
     return model
+
+
+def select_data_with_max_length_sentence(max_length: int, tokens_list: list, *args):
+    """
+    Select the data within a corpus the data corresponding to sentences with less token than max length.
+    ex: select_data_with_max_length_sentence(max_length= 10, sentences= tokens_list, texts, colors)
+    would return the data in tokens_list, texts and colors corresponding to tokens in tokens_list with less than 10 items
+    :param max_length: criteria applied to select items in sentences
+    :param tokens_list: list of tokenized utterances
+    :param args: other iterables of same length as tokens_list, corresponding to data linked to the one in tokens_list.
+    Could be the sentences that have been tokenized, or corresponding colors...
+    :return: tuple of list of iterables
+    """
+    new_args = [[]]
+    if args:
+        for _ in args:
+            new_args.append([])  # initiate an empty list for each iterable in args
+    for item in zip(tokens_list, *args):
+        if len(item[0]) <= max_length:
+            new_args[0].append(item[0])
+            for i, x in enumerate(item[1:]):
+                new_args[i + 1].append(x)
+    return tuple(new_args)
 

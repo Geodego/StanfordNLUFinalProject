@@ -34,15 +34,91 @@ class TransformerDescriber(ContextualColorDescriber):
             kwargs['embedding'] = self.embedding
 
         decoder = TransformerDecoder(visual_feature_size=self.hidden_dim, vocab_size=self.vocab_size,
-                                         hidden_size=self.hidden_dim, num_layers=self.num_layers,
-                                         attention_heads=self.n_attention, feedforward_size=self.feedforward_size,
-                                         **kwargs)
+                                     hidden_size=self.hidden_dim, num_layers=self.num_layers,
+                                     attention_heads=self.n_attention, feedforward_size=self.feedforward_size,
+                                     **kwargs)
 
         self.embed_dim = decoder.embedding.words.embedding_dim
         # Return a `TransformerEncoderDecoder` that uses Encoder and TransformerTextualHead
         output = TransformerEncoderDecoder(encoder, decoder)
         self.encoder_decoder = output
         return output
+
+    def predict(self, color_seqs, max_length=20, device=None):
+        """
+        Predict new sequences based on the color contexts in
+        `color_seqs`. The dynamic is modified from the one used for RNN where only the previous word and the previous
+        hidden state are used as input (the previous hidden state has the information of the sentence creation up to
+        now). With the Transformer decoder, the sentence up to now needs to be used as input.
+
+        Parameters
+        ----------
+        color_seqs : list of lists of lists of floats, or np.array
+            Dimension (m, n, p) where m is the number of examples, n is
+            the number of colors in each context, and p is the length
+            of the color representations.
+
+        max_length : int
+            Length of the longest sequences to create.
+
+        device: str or None
+            Allows the user to temporarily change the device used
+            during prediction. This is useful if predictions require a
+            lot of memory and so are better done on the CPU. After
+            prediction is done, the model is returned to `self.device`.
+
+        Returns
+        -------
+        list of str
+
+        """
+        device = self.device if device is None else torch.device(device)
+
+        color_seqs = torch.FloatTensor(color_seqs)
+        color_seqs = color_seqs.to(device)
+
+        self.model.to(device)
+
+        self.model.eval()
+
+        preds = []
+
+        with torch.no_grad():
+            # Get the hidden representations from the color contexts:
+            hidden = self.model.encoder(color_seqs)
+
+            # Start with START_SYMBOL for all examples:
+            decoder_input = [[self.start_index]] * len(color_seqs)
+            decoder_input = torch.LongTensor(decoder_input)
+            decoder_input = decoder_input.to(device)
+
+            preds.append(decoder_input)
+
+            # Now move through the remaiming timesteps using the
+            # previous timestep to predict the next one:
+            for i in range(1, max_length):
+                output = self.model(
+                    color_seqs=color_seqs,
+                    word_seqs=decoder_input,
+                    seq_lengths=None,
+                    hidden=hidden)
+
+                # Always take the highest probability token to
+                # be the prediction:
+                p = output.argmax(2)
+                # get the last word predicted
+                last_word = p[:, -1].reshape(-1, 1)
+                preds.append(last_word)
+                decoder_input = torch.cat((decoder_input, last_word), 1)
+
+        # Convert all the predictions from indices to elements of
+        # `self.vocab`:
+        preds = torch.cat(preds, axis=1)
+        preds = [self._convert_predictions(p) for p in preds]
+
+        self.model.to(self.device)
+
+        return preds
 
 
 class TransformerEncoderDecoder(EncoderDecoder):
@@ -58,11 +134,7 @@ class TransformerEncoderDecoder(EncoderDecoder):
             # should mean we're in eval mode trying to calculate proba using the pretrained model. In that case each
             # sentence has only one token
             seq_lengths = torch.ones(word_seqs.shape[0]) * word_seqs.shape[1]
-        # todo: remove try except below, used for debugging
-        try:
-            output_logits = self.decoder(visual_features=hidden, caption_tokens=word_seqs, caption_lengths=seq_lengths)
-        except:
-            pass
+        output_logits = self.decoder(visual_features=hidden, caption_tokens=word_seqs, caption_lengths=seq_lengths)
         # output_logits.shape: [batch_size, max_num_word_in_batch, vocab size]
 
         if self.training:
@@ -72,5 +144,4 @@ class TransformerEncoderDecoder(EncoderDecoder):
             output_caption = output.transpose(1, 2)
             return output_caption
         else:
-
-            return output_logits, hidden
+            return output_logits

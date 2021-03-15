@@ -224,7 +224,7 @@ class ColorsCorpusExample:
         """
         We expect all the dicts in `rows` to have the same keys and
         values except for the keys associated with the messages. This
-        function tests this assumption holds.
+        function tests1 this assumption holds.
 
         """
         keys = set(rows[0].keys())

@@ -78,7 +78,7 @@ class ColorizedEncoderDecoder(EncoderDecoder):
 
 class ColorizedInputDescriber(ContextualColorDescriber):
 
-    def __init__(self, vocab, color_dim=54, *args, **kwargs):
+    def __init__(self, vocab, *args, color_dim=54, **kwargs):
         super().__init__(vocab, *args, **kwargs)
         self.color_dim = color_dim
 
