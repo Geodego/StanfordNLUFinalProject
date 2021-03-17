@@ -6,6 +6,7 @@ from torch import nn
 
 class WordAndPositionalEmbedding(nn.Module):
     r"""
+    # todo: Virtex
     A :class:`~torch.nn.Module` for learned word embeddings and position
     embeddings for input tokens. Each token is mapped to a fixed dimensional
     word embedding; and corresponding positional embedding based on its index.
@@ -98,10 +99,75 @@ class WordAndPositionalEmbedding(nn.Module):
 
 class WordandPositionalEmbeddingFromPretrained(WordAndPositionalEmbedding):
     """
-    Allow to use pretrained embeddings.
+    Allow the use of pretrained embeddings.
     """
 
     def __init__(self, embedding, freeze, *args, **kwargs):
         super(WordandPositionalEmbeddingFromPretrained, self).__init__(*args, **kwargs)
         embedding = torch.FloatTensor(embedding)
         self.words = nn.Embedding.from_pretrained(embedding, freeze=freeze)
+
+
+class WordEmbedding(nn.Module):
+
+    def __init__(self,
+                 vocab_size,
+                 embed_dim,
+                 embedding=None,
+                 freeze_embedding=False):
+        """
+        Parent class from which is derived all RNN encoders and decoders using a word embedding.
+
+        Parameters
+        ----------
+        vocab_size : int
+
+        embed_dim : int
+
+        embedding : np.array or None
+            If `None`, a random embedding is created. If `np.array`, this
+            value becomes the embedding.
+
+        """
+        super().__init__()
+        self.vocab_size = vocab_size
+        self.freeze_embedding = freeze_embedding
+        self.embedding = self._define_embedding(
+            embedding, self.vocab_size, embed_dim, self.freeze_embedding)
+        self.embed_dim = self.embedding.embedding_dim
+
+    def get_embeddings(self, word_seqs, target_colors=None):
+        """
+        Gets the input token representations. At present, these are
+        just taken directly from `self.embedding`, but `target_colors`
+        can be made available in case the user wants to subclass this
+        function to append these representations to each input token.
+
+        Parameters
+        ----------
+        word_seqs : torch.LongTensor
+            This is a padded sequence, dimension (m, k), where k is
+            the length of the longest sequence in the batch.
+
+        target_colors : torch.FloatTensor
+            Dimension (m, c), where m is the number of examples and
+            c is the dimensionality of the color representations.
+
+        """
+        return self.embedding(word_seqs)
+
+    @staticmethod
+    def _define_embedding(embedding, vocab_size, embed_dim, freeze_embedding):
+        if embedding is None:
+            emb = nn.Embedding(vocab_size, embed_dim)
+            emb.weight.requires_grad = not freeze_embedding
+            return emb
+        else:
+            embedding = torch.FloatTensor(embedding)
+            return nn.Embedding.from_pretrained(
+                embedding, freeze=freeze_embedding)
+
+
+
+
+

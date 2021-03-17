@@ -336,8 +336,8 @@ class TransformerDecoder(TransformerTextualHead):
     freeze_embedding: allow choosing if model will learn or not embeddings
     """
 
-    def __init__(self, *args, freeze_embedding=False, embedding=None, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, *args, freeze_embedding=False, embedding=None, max_caption_length=100, **kwargs):
+        super().__init__(*args, max_caption_length=max_caption_length, **kwargs)
         self.freeze_embedding = freeze_embedding
         if embedding is None:
             # In that case we keep embedding setup of the superclass, we just setup the freeze_embedding option
@@ -349,7 +349,7 @@ class TransformerDecoder(TransformerTextualHead):
                 vocab_size=self.vocab_size,
                 hidden_size=self.textual_feature_size,
                 dropout=0.1,
-                max_caption_length=60,
+                max_caption_length=max_caption_length,
                 padding_idx=0,
         )
         if self.freeze_embedding:

@@ -6,19 +6,21 @@ from project.models.transformer_based import TransformerDescriber
 from project.utils.tools import load_model_states, select_data_with_max_length_sentence
 
 
-def get_model_pretrained_output(model_class, file_params, corpus_word_count):
+def get_model_pretrained_output(model_class, file_params, corpus_word_count, prev_split=False, **kwargs):
     """
     Return the output of get_trained_color_model for model which states were saved in
     file_params
     :param model_class: class of the model which decoder encoder params were saved in file_params
     :param file_params:
     :param corpus_word_count:
+    :param prev_split: if true use train_test_split on all data
+    :param kwargs: additional params por the model used
     :return:
     """
     fix_random_seeds()
     # go through on iteration to set up the untrained model properly
     output = get_trained_color_speaker(corpus_word_count=corpus_word_count, speaker=model_class,
-                                       max_iter=1)
+                                       max_iter=1, prev_split=prev_split, **kwargs)
     model = output['model']
     model.encoder_decoder = load_model_states(model.encoder_decoder, file_params)
     output['model'] = model
@@ -94,11 +96,15 @@ def compare_models(model1_output, model2_output, n_examples=2, sentence_max_leng
 if __name__ == '__main__':
     speaker1 = ColorizedInputDescriber
     speaker2 = TransformerDescriber
-    file_name1 = 'ColorizedInputDescriber_alldata'
-    file_name2 = 'TransformerDescriber_alldata_utterhistory'
-    #output1 = train_and_save(speaker1, corpus_word_count=None, file_name=file_name1)
-    #output2 = train_and_save(speaker2, corpus_word_count=None, file_name=file_name2)
-    output1 = get_model_pretrained_output(speaker1, file_params=file_name1, corpus_word_count=None)
-    output2 = get_model_pretrained_output(speaker2, file_params=file_name2, corpus_word_count=None)
+    file_name1 = 'ColorizedInputDescriber_alldata_prevsplit'
+    file_name2 = 'TransformerDescriber_alldata_utterhistory_prevsplit'
+    # output1 = train_and_save_speaker(speaker1, corpus_word_count=None, file_name=file_name1)
+    # output2 = train_and_save_speaker(speaker2, corpus_word_count=None, file_name=file_name2)
+    output1 = get_model_pretrained_output(speaker1, prev_split=True,
+                                          file_params=file_name1, corpus_word_count=None)
+    output2 = get_model_pretrained_output(speaker2, prev_split=True,
+                                          file_params=file_name2, corpus_word_count=None,
+                                          max_caption_length=60)
+
     compare_models(output1, output2, n_examples=20, sentence_max_length=58)
 

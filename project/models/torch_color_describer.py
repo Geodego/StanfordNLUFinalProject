@@ -1,4 +1,6 @@
 import itertools
+from abc import ABC
+
 import nltk.translate.bleu_score
 import numpy as np
 import torch
@@ -7,6 +9,7 @@ import torch.utils.data
 from .torch_model_base import TorchModelBase
 from ..utils import utils
 from ..utils.utils import START_SYMBOL, END_SYMBOL, UNK_SYMBOL
+from ..modules.embedding import WordEmbedding
 
 __author__ = "Christopher Potts"
 __version__ = "CS224u, Stanford, Fall 2020"
@@ -37,6 +40,7 @@ class ColorDataset(torch.utils.data.Dataset):
         word sequence in `word_seqs`.
 
     """
+
     def __init__(self, color_seqs, word_seqs, ex_lengths):
         assert len(color_seqs) == len(ex_lengths)
         assert len(color_seqs) == len(word_seqs)
@@ -145,13 +149,9 @@ class Encoder(nn.Module):
         return hidden
 
 
-class Decoder(nn.Module):
-    def __init__(self,
-            vocab_size,
-            embed_dim,
-            hidden_dim,
-            embedding=None,
-            freeze_embedding=False):
+class Decoder(WordEmbedding):
+
+    def __init__(self, hidden_dim, *args, **kwargs):
         """
         Simple Decoder model based on a GRU cell. The hidden
         representations of the GRU are passed through a dense linear
@@ -160,24 +160,13 @@ class Decoder(nn.Module):
 
         Parameters
         ----------
-        vocab_size : int
-
-        embed_dim : int
 
         hidden_dim : int
 
-        embedding : np.array or None
-            If `None`, a random embedding is created. If `np.array`, this
-            value becomes the embedding.
-
         """
-        super().__init__()
-        self.vocab_size = vocab_size
+        super().__init__(*args, **kwargs)
+
         self.hidden_dim = hidden_dim
-        self.freeze_embedding = freeze_embedding
-        self.embedding = self._define_embedding(
-            embedding, self.vocab_size, embed_dim, self.freeze_embedding)
-        self.embed_dim = self.embedding.embedding_dim
         self.rnn = nn.GRU(
             input_size=self.embed_dim,
             hidden_size=self.hidden_dim,
@@ -247,37 +236,6 @@ class Decoder(nn.Module):
             output, hidden = self.rnn(embs, hidden)
             output = self.output_layer(output)
             return output, hidden
-
-    def get_embeddings(self, word_seqs, target_colors=None):
-        """
-        Gets the input token representations. At present, these are
-        just taken directly from `self.embedding`, but `target_colors`
-        can be made available in case the user wants to subclass this
-        function to append these representations to each input token.
-
-        Parameters
-        ----------
-        word_seqs : torch.LongTensor
-            This is a padded sequence, dimension (m, k), where k is
-            the length of the longest sequence in the batch.
-
-        target_colors : torch.FloatTensor
-            Dimension (m, c), where m is the number of examples and
-            c is the dimensionality of the color representations.
-
-        """
-        return self.embedding(word_seqs)
-
-    @staticmethod
-    def _define_embedding(embedding, vocab_size, embed_dim, freeze_embedding):
-        if embedding is None:
-            emb = nn.Embedding(vocab_size, embed_dim)
-            emb.weight.requires_grad = not freeze_embedding
-            return emb
-        else:
-            embedding = torch.FloatTensor(embedding)
-            return nn.Embedding.from_pretrained(
-                embedding, freeze=freeze_embedding)
 
 
 class EncoderDecoder(nn.Module):
@@ -353,21 +311,15 @@ class EncoderDecoder(nn.Module):
 
 
 class ColorAgent(TorchModelBase):
-    def __init__(self):
+
+    def __init__(self, vocab,
+                 embedding=None,
+                 embed_dim=50,
+                 hidden_dim=50,
+                 freeze_embedding=False,
+                 **base_kwargs):
         """
         Ancestor of all colors agents. The primary interface to modeling contextual colors datasets.
-        """
-
-
-class ContextualColorDescriber(TorchModelBase):
-    def __init__(self,
-            vocab,
-            embedding=None,
-            embed_dim=50,
-            hidden_dim=50,
-            freeze_embedding=False,
-            **base_kwargs):
-        """
         The primary interface to modeling contextual colors datasets.
 
         Parameters
@@ -427,10 +379,11 @@ class ContextualColorDescriber(TorchModelBase):
 
         """
         super().__init__(**base_kwargs)
-        self.vocab = vocab
         self.hidden_dim = hidden_dim
         self.embedding = embedding
+        self.color_dim = None
         self.freeze_embedding = freeze_embedding
+        self.vocab = vocab
         self.vocab_size = len(vocab)
         self.word2index = dict(zip(self.vocab, range(self.vocab_size)))
         self.index2word = dict(zip(range(self.vocab_size), self.vocab))
@@ -440,8 +393,6 @@ class ContextualColorDescriber(TorchModelBase):
         self.end_index = self.vocab.index(END_SYMBOL)
         self.unk_index = self.vocab.index(UNK_SYMBOL)
         self.params += ['hidden_dim', 'embed_dim', 'embedding', 'freeze_embedding']
-        self.loss = nn.CrossEntropyLoss()
-        self.encoder_decoder = None
 
     def build_dataset(self, color_seqs, word_seqs):
         """
@@ -468,6 +419,26 @@ class ContextualColorDescriber(TorchModelBase):
                      for seq in word_seqs]
         ex_lengths = [len(seq) for seq in word_seqs]
         return ColorDataset(color_seqs, word_seqs, ex_lengths)
+
+
+class ContextualColorDescriber(ColorAgent):
+
+    def __init__(self, vocab, **base_kwargs):
+        """
+        The primary interface to modeling contextual colors speakers.
+
+        Parameters
+        ----------
+        vocab : list of str
+            This should be the vocabulary. It needs to be aligned with
+            `embedding` in the sense that the ith element of vocab
+            should be represented by the ith row of `embedding`.
+        **base_kwargs
+            For details, see `ColorAgent`.
+        """
+        super().__init__(vocab, **base_kwargs)
+        self.loss = nn.CrossEntropyLoss()
+        self.encoder_decoder = None
 
     def build_graph(self):
         """
@@ -688,9 +659,9 @@ class ContextualColorDescriber(TorchModelBase):
         for pred, seq in zip(probs, word_seqs):
             # Get the probabilities corresponding to the path `seq`:
             s = np.array([t[self.word2index.get(w, self.unk_index)]
-                         for t, w in zip(pred, seq)])
+                          for t, w in zip(pred, seq)])
             scores.append(s)
-        perp = [np.prod(s)**(-1/len(s)) for s in scores]
+        perp = [np.prod(s) ** (-1 / len(s)) for s in scores]
         return perp
 
     def listener_predict_one(self, context, seq, device=None):
@@ -811,7 +782,7 @@ class ContextualColorDescriber(TorchModelBase):
 
         # Calculate a unigrams-only BLEU score:
         bleu = nltk.translate.bleu_score.corpus_bleu(
-            refs, preds, weights=(1, ))
+            refs, preds, weights=(1,))
 
         return bleu
 
@@ -827,8 +798,7 @@ class ContextualColorDescriber(TorchModelBase):
             the number of colors in each context, and p is the length
             of the color representations.
 
-        word_seqs : list of lists of utterances
-            A tokenized list of words.
+        word_seqs : list of lists of utterances. A tokenized list of words.
 
         device: str or None
             Allows the user to temporarily change the device used

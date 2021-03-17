@@ -353,12 +353,7 @@ class TorchModelBase:
 
                 batch = [x.to(self.device, non_blocking=True) for x in batch]
 
-                X_batch = batch[: -1]
-                y_batch = batch[-1]
-
-                batch_preds = self.model(*X_batch)
-
-                err = self.loss(batch_preds, y_batch)
+                err = self._get_loss_from_batch(batch)
 
                 if self.gradient_accumulation_steps > 1 and \
                   self.loss.reduction == "mean":
@@ -408,6 +403,16 @@ class TorchModelBase:
             self.model.load_state_dict(self.best_parameters)
 
         return self
+
+    def _get_loss_from_batch(self, batch):
+        """
+        Current design works for speakers. Need to be overwritten for listeners.
+        """
+        X_batch = batch[: -1]
+        y_batch = batch[-1]
+        batch_preds = self.model(*X_batch)
+        err = self.loss(batch_preds, y_batch)
+        return err
 
     @staticmethod
     def _build_validation_split(*args, validation_fraction=0.2):

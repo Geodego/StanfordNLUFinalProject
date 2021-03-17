@@ -9,11 +9,20 @@ class TransformerDescriber(ContextualColorDescriber):
     embeddings: pretrained embeddings
     """
 
-    def __init__(self, *args, num_layers=1, n_attention=None, feedforward_size=None, **kwargs):
+    def __init__(self, *args, num_layers=1, n_attention=None, feedforward_size=None, max_caption_length = 100, **kwargs):
+        """
+
+        :param args:
+        :param num_layers:
+        :param n_attention:
+        :param feedforward_size:
+        :param kwargs:
+        """
         super().__init__(*args, **kwargs)
         self.num_layers = num_layers
         self.feedforward_size = feedforward_size
         self.n_attention = n_attention
+        self.max_caption_length = max_caption_length
 
     def build_graph(self):
 
@@ -36,7 +45,7 @@ class TransformerDescriber(ContextualColorDescriber):
         decoder = TransformerDecoder(visual_feature_size=self.hidden_dim, vocab_size=self.vocab_size,
                                      hidden_size=self.hidden_dim, num_layers=self.num_layers,
                                      attention_heads=self.n_attention, feedforward_size=self.feedforward_size,
-                                     **kwargs)
+                                     max_caption_length=self.max_caption_length, **kwargs)
 
         self.embed_dim = decoder.embedding.words.embedding_dim
         # Return a `TransformerEncoderDecoder` that uses Encoder and TransformerTextualHead
