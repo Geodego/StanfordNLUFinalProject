@@ -181,8 +181,7 @@ if __name__ == '__main__':
     # train_and_save_speaker(model=TransformerDescriber, corpus_word_count=None, file_name='', split_rate=0.5,
     #                        eta=0.004, batch_size=32)
 
-    train_and_save_listener(corpus_word_count=None, file_name="Listener_monroe_split_glove_b150-e0.2",
+    train_and_save_listener(corpus_word_count=None, file_name="",
                             use_glove=True,
-                            max_iter=1000
-                            , early_stopping=False, glove_dim=100, eta=0.2, batch_size=150,
+                            max_iter=100, early_stopping=False, glove_dim=100, eta=0.2, batch_size=256,
                             optimizer='Adadelta')

@@ -1,3 +1,7 @@
+"""
+Torch interface with common features shared by the different agents
+"""
+
 import copy
 import numpy as np
 import pickle

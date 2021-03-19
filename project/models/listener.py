@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 from torch import nn
-from .torch_color_describer import ColorAgent
+from .agents_base import ColorListener
 from ..modules.embedding import WordEmbedding
 from .torch_model_base import TorchModelBase
 
@@ -61,18 +61,41 @@ class CaptionEncoder(WordEmbedding):
         self.color_dim = color_dim
         self.hidden_dim = hidden_dim
 
-    def forward(self, color_seqs, word_seqs):
-        """Turns caption into distribution over colors."""
+    def forward(self, color_seqs, word_seqs, seq_lengths):
+        """
+        Turns caption into distribution over colors.
+        :param color_seqs: torch.FloatTensor
+            Dimension (m, 3, c), where m is the number of examples and
+            c is the dimensionality of the color representations.
+        :param word_seqs: torch.LongTensor
+            This is a padded sequence, dimension (m, k), where k is
+            the length of the longest sequence in the batch. The `forward`
+            method uses `self.get_embeddings` to mape these indices to their
+            embeddings.
+        :param seq_lengths: torch.LongTensor
+            Shape (m, ) where `m` is the number of examples in the batch.
+        :return:
+        """
         #todo: pack sequences for performance
         batch_size = color_seqs.shape[0]
         embeddings = self.get_embeddings(word_seqs)
-        output1, (hn, cn) = self.lstm(embeddings)
+
+        # pack sequence for performance
+        embeddings = nn.utils.rnn.pack_padded_sequence(embeddings, batch_first=True, lengths=seq_lengths,
+                                                       enforce_sorted=False)
+        # rnn forward
+        output, _ = self.lstm(embeddings)
+
+        # unpack
+        output, seq_lengths = nn.utils.rnn.pad_packed_sequence(output, batch_first=True)
 
         # we only care about last output (first dim is batch size)
+        # todo: improve by taking into account all steps, by taking average hidden states or building attention
+        #  mechanism
         # here we are concatenating the the last output vector of the forward direction (at index -1)
         # and the last output vector of the first direction (at index 0)
-        output = torch.cat((output1[:, -1, :self.hidden_dim],
-                            output1[:, 0, self.hidden_dim:]), 1)
+        output = torch.cat((output[:, -1, :self.hidden_dim],
+                            output[:, 0, self.hidden_dim:]), 1)
 
         output_mean = self.mean(output)
         output_covariance = self.covariance(output)
@@ -99,7 +122,7 @@ class CaptionEncoder(WordEmbedding):
                 torch.zeros(2, 1, self.hidden_dim))
 
 
-class LiteralListener(ColorAgent):
+class LiteralListener(ColorListener):
 
     def __init__(self, vocab, color_dim=54, **base_kwargs):
         """
@@ -141,10 +164,10 @@ class LiteralListener(ColorAgent):
             #     colors = torch.tensor([colors], dtype=torch.float)
             #     model_output_np = self.evaluate_iter((caption, colors)).view(-1).numpy()
             #     model_outputs.append(model_output_np)
-            for batch_colors, batch_words, _, _ in dataloader:
+            for batch_words, batch_lengths, batch_colors in dataloader:
                 batch_colors = batch_colors.to(device)
                 batch_words = batch_words.to(device)
-                output = self.model(color_seqs=batch_colors, word_seqs=batch_words)
+                output = self.model(color_seqs=batch_colors, word_seqs=batch_words, seq_lengths=batch_lengths)
                 model_outputs = torch.cat((model_outputs, output), 0)
 
         softmax = nn.Softmax(dim=1)
@@ -158,6 +181,7 @@ class LiteralListener(ColorAgent):
         updating the parameters. (TODO: add some kind of batching to this).
         """
         # todo: check if need to be kept
+        raise Exception
         input_length = caption_tensor.size(0)
         loss = 0
 
@@ -174,6 +198,7 @@ class LiteralListener(ColorAgent):
         like that
         """
         # todo: check if need to be kept
+        raise Exception
         with torch.no_grad():
             caption_tensor, color_tensor = pair
             model_output = self.model(color_tensor, caption_tensor)
@@ -222,9 +247,11 @@ class LiteralListener(ColorAgent):
         """
         # todo: check code here for dealing with batch
         #  y_batch = batch[: -1]
-        y_batch =batch[0]
-        X_batch = batch[-1]
-        batch_preds = self.model(color_seqs=y_batch, word_seqs=X_batch)
+        y_batch = batch[2]
+        seq_lengths = batch[1]
+        # for utterances we use the last item from batch where the first symbol of sentence initiation has been dropped
+        X_batch = batch[0]
+        batch_preds = self.model(color_seqs=y_batch, word_seqs=X_batch, seq_lengths=seq_lengths)
 
         # The expected distribution should be [0, 0, 1] giving a 1 probability to the last color, which is by
         # construction the target color

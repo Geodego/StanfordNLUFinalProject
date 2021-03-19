@@ -9,7 +9,7 @@ class TransformerDescriber(ContextualColorDescriber):
     embeddings: pretrained embeddings
     """
 
-    def __init__(self, *args, num_layers=1, n_attention=None, feedforward_size=None, max_caption_length = 100, **kwargs):
+    def __init__(self, *args, num_layers=1, n_attention=None, feedforward_size=None, max_caption_length=100, **kwargs):
         """
 
         :param args:
