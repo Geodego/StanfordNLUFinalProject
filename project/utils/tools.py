@@ -3,6 +3,7 @@ import sys
 import os
 import torch
 from torch import nn
+import time
 
 ROOT_DIRECTORY = 'StanfordNLUFinalProject'
 PROJECT_DIRECTORY = 'project'
@@ -79,3 +80,23 @@ def select_data_with_max_length_sentence(max_length: int, tokens_list: list, *ar
                 new_args[i + 1].append(x)
     return tuple(new_args)
 
+
+def get_optimizer(name: str):
+    """Return the optimizer corresponding to name"""
+    return getattr(torch.optim)
+
+
+def time_calc(method):
+    def timed(*args, **kw):
+        ts = time.time()
+        result = method(*args, **kw)
+        te = time.time()
+        if 'log_time' in kw:
+            name = kw.get('log_name', method.__name__.upper())
+            kw['log_time'][name] = int((te - ts) * 1000)
+        else:
+            length = (te - ts) / 60
+            print('execution time of {}  {:.2f} mn'.format(method.__name__, length))
+        return result
+
+    return timed

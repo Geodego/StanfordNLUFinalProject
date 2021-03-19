@@ -63,6 +63,7 @@ class CaptionEncoder(WordEmbedding):
 
     def forward(self, color_seqs, word_seqs):
         """Turns caption into distribution over colors."""
+        #todo: pack sequences for performance
         batch_size = color_seqs.shape[0]
         embeddings = self.get_embeddings(word_seqs)
         output1, (hn, cn) = self.lstm(embeddings)
@@ -82,7 +83,6 @@ class CaptionEncoder(WordEmbedding):
         output_mean = output_mean.repeat(1, 3, 1)
         diff_from_mean = color_seqs - output_mean
         scores = torch.matmul(diff_from_mean, covar_matrix)
-        # todo: finish here
         diff_transpose = diff_from_mean.transpose(1, 2)
         scores = torch.matmul(scores, diff_transpose) # dim=(batch_size, 3, color_dim) where 3 is the nber of colors
         #scores = -torch.diag(scores)
