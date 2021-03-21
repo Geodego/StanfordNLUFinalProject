@@ -265,7 +265,7 @@ class TransformerTextualHead(TextualHead):
             projected_visual_features = self.visual_projection(visual_features)
         except ValueError:
             # visual features are colors
-            projected_visual_features = visual_features
+            projected_visual_features = self.visual_projection(visual_features)
 
         # Now visual and textual features are of same size.
 
@@ -337,6 +337,9 @@ class TransformerDecoder(TransformerTextualHead):
     """
 
     def __init__(self, *args, freeze_embedding=False, embedding=None, max_caption_length=100, **kwargs):
+
+        if embedding is not None:
+            kwargs['hidden_size'] = embedding.shape[1]
         super().__init__(*args, max_caption_length=max_caption_length, **kwargs)
         self.freeze_embedding = freeze_embedding
         if embedding is None:

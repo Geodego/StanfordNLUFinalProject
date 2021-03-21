@@ -104,6 +104,6 @@ class ColorizedInputDescriber(ContextualColorDescriber):
 
         self.embed_dim = decoder.embed_dim
         # Return a `ColorizedEncoderDecoder` that uses
-        self.encoder_decoder = ColorizedEncoderDecoder(encoder, decoder)
+        self.model = ColorizedEncoderDecoder(encoder, decoder)
 
-        return self.encoder_decoder
+        return self.model

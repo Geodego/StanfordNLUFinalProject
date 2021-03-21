@@ -18,11 +18,11 @@ class TransformerDescriber(ContextualColorDescriber):
         :param feedforward_size:
         :param kwargs:
         """
-        super().__init__(*args, **kwargs)
         self.num_layers = num_layers
         self.feedforward_size = feedforward_size
         self.n_attention = n_attention
         self.max_caption_length = max_caption_length
+        super(TransformerDescriber, self).__init__(*args, **kwargs)
 
     def build_graph(self):
 
@@ -50,7 +50,7 @@ class TransformerDescriber(ContextualColorDescriber):
         self.embed_dim = decoder.embedding.words.embedding_dim
         # Return a `TransformerEncoderDecoder` that uses Encoder and TransformerTextualHead
         output = TransformerEncoderDecoder(encoder, decoder)
-        self.encoder_decoder = output
+        self.model = output
         return output
 
     def predict(self, color_seqs, max_length=20, device=None):
@@ -94,7 +94,11 @@ class TransformerDescriber(ContextualColorDescriber):
 
         with torch.no_grad():
             # Get the hidden representations from the color contexts:
-            hidden = self.model.encoder(color_seqs)
+            try:
+                hidden = self.model.encoder(color_seqs)
+            except AttributeError:
+                # we are in RSASpeakerListener model
+                hidden = self.model.encoder_decoder.encoder(color_seqs)
 
             # Start with START_SYMBOL for all examples:
             decoder_input = [[self.start_index]] * len(color_seqs)
@@ -118,6 +122,71 @@ class TransformerDescriber(ContextualColorDescriber):
                 # get the last word predicted
                 last_word = p[:, -1].reshape(-1, 1)
                 preds.append(last_word)
+                decoder_input = torch.cat((decoder_input, last_word), 1)
+
+        # Convert all the predictions from indices to elements of
+        # `self.vocab`:
+        preds = torch.cat(preds, axis=1)
+        preds = [self._convert_predictions(p) for p in preds]
+
+        self.model.to(self.device)
+
+        return preds
+
+    def beam_search(self, color_seqs, max_length=20, beam_size=2, device=None):
+        """
+        Predict new sequences based on the color contexts in
+        `color_seqs` using beam search.
+        :param color_seqs:
+        :param max_length:
+        :param device:
+        :param beam_size:
+        :return:
+        """
+        device = self.device if device is None else torch.device(device)
+
+        color_seqs = torch.FloatTensor(color_seqs)
+        color_seqs = color_seqs.to(device)
+
+        self.model.to(device)
+
+        self.model.eval()
+
+        beam_pred = []  # store the captions for beam search
+        beam_proba = []  # store the probabilities of captions in beam_pred
+
+        with torch.no_grad():
+            # Get the hidden representations from the color contexts:
+            try:
+                hidden = self.model.encoder(color_seqs)
+            except AttributeError:
+                # we are in RSASpeakerListener model
+                hidden = self.model.encoder_decoder.encoder(color_seqs)
+
+            # Start with START_SYMBOL for all examples:
+            decoder_input = [[self.start_index]] * len(color_seqs)
+            decoder_input = [decoder_input] * beam_size  # add one dimension so that we can handle beam search
+            decoder_input = torch.LongTensor(decoder_input)
+            decoder_input = decoder_input.to(device)
+
+            beam_pred.append(decoder_input)
+
+            # Now move through the remaiming timesteps using the
+            # previous timestep to predict the next one:
+            for i in range(1, max_length):
+                output = self.model(
+                    color_seqs=color_seqs,
+                    word_seqs=decoder_input,
+                    seq_lengths=None,
+                    hidden=hidden)
+
+                # Always take the  beam_size highest probability token to
+                # be the prediction:
+                p = torch.topk(output, k=beam_size)
+                # get the last word predicted
+                last_word = p[:, -1].reshape(-1, 1)
+                beam_pred.append(last_word)
+                #todo: finish beam search here
                 decoder_input = torch.cat((decoder_input, last_word), 1)
 
         # Convert all the predictions from indices to elements of

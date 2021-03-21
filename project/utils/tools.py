@@ -100,3 +100,5 @@ def time_calc(method):
         return result
 
     return timed
+
+

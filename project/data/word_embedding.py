@@ -21,3 +21,15 @@ def create_glove_embedding(vocab, glove_dim=50):
     embedding, new_vocab = utils.create_pretrained_embedding(glove_dict, vocab,
                                                              required_tokens=(START_SYMBOL, END_SYMBOL, UNK_SYMBOL))
     return embedding, new_vocab
+
+
+def load_embedding(glove_dim=None, vocab=None):
+    """Returns word embedding and adjusted vocabulary"""
+    # If use_glove selected we use a Glove embedding and we need to modify the vocabulary accordingly
+    if glove_dim is not None:
+        glove_embedding, glove_vocab = create_glove_embedding(vocab, glove_dim)
+        vocab = glove_vocab
+        embedding = glove_embedding
+    else:
+        embedding = None
+    return embedding, vocab

@@ -4,8 +4,9 @@ from ..utils.utils import START_SYMBOL, END_SYMBOL
 from .vectorizers import FourierVectorizer
 
 
-def tokenize_example(s):
+def monroe_tokenizer(s):
     """
+    Tokenizer used in Monroe et al 2017
     Preprocess utterances used to describe a color by:
         _ splitting off punctuation and endings in -er, -est, -ish
         _ lowercasing

@@ -232,9 +232,10 @@ class ContextualColorDescriber(ColorSpeaker):
         **base_kwargs
             For details, see `ColorAgent`.
         """
-        super().__init__(vocab, **base_kwargs)
+        super(ContextualColorDescriber, self).__init__(vocab, **base_kwargs)
         self.loss = nn.CrossEntropyLoss()
-        self.encoder_decoder = None
+        self.model = None
+        self.build_graph()
 
     def build_graph(self):
         """
@@ -258,9 +259,9 @@ class ContextualColorDescriber(ColorSpeaker):
             freeze_embedding=self.freeze_embedding)
 
         self.embed_dim = decoder.embed_dim
-        self.encoder_decoder = EncoderDecoder(encoder, decoder)
+        self.model = EncoderDecoder(encoder, decoder)
 
-        return self.encoder_decoder
+        return self.model
 
     def predict(self, color_seqs, max_length=20, device=None):
         """

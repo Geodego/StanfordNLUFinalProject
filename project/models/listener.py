@@ -61,7 +61,7 @@ class CaptionEncoder(WordEmbedding):
         self.color_dim = color_dim
         self.hidden_dim = hidden_dim
 
-    def forward(self, color_seqs, word_seqs, seq_lengths):
+    def forward(self, color_seqs, word_seqs, seq_lengths, is_embedded=False):
         """
         Turns caption into distribution over colors.
         :param color_seqs: torch.FloatTensor
@@ -74,11 +74,15 @@ class CaptionEncoder(WordEmbedding):
             embeddings.
         :param seq_lengths: torch.LongTensor
             Shape (m, ) where `m` is the number of examples in the batch.
+        :param is_embedded: if true no need to use self.get_embeddings(word_seqs). Mainly for CaptionEncoder
+        is used as part of a more complex model.
         :return:
         """
-        #todo: pack sequences for performance
         batch_size = color_seqs.shape[0]
-        embeddings = self.get_embeddings(word_seqs)
+        if not is_embedded:
+            embeddings = self.get_embeddings(word_seqs)
+        else:
+            embeddings = word_seqs
 
         # pack sequence for performance
         embeddings = nn.utils.rnn.pack_padded_sequence(embeddings, batch_first=True, lengths=seq_lengths,
@@ -175,36 +179,36 @@ class LiteralListener(ColorListener):
         self.model.train()
         return probabilities
 
-    def train_iter(self, caption_tensor, color_tensor, target, criterion):
-        """
-        Iterates through a single training pair, querying the model, getting a loss and
-        updating the parameters. (TODO: add some kind of batching to this).
-        """
-        # todo: check if need to be kept
-        raise Exception
-        input_length = caption_tensor.size(0)
-        loss = 0
+    # def train_iter(self, caption_tensor, color_tensor, target, criterion):
+    #     """
+    #     Iterates through a single training pair, querying the model, getting a loss and
+    #     updating the parameters. (TODO: add some kind of batching to this).
+    #     """
+    #     # todo: check if need to be kept
+    #     raise Exception
+    #     input_length = caption_tensor.size(0)
+    #     loss = 0
+    #
+    #     model_output = self.model(color_tensor, caption_tensor)
+    #     model_output = model_output.view(1, -1)
+    #
+    #     loss += criterion(model_output, target)
+    #
+    #     return loss
 
-        model_output = self.model(color_tensor, caption_tensor)
-        model_output = model_output.view(1, -1)
-
-        loss += criterion(model_output, target)
-
-        return loss
-
-    def evaluate_iter(self, pair):
-        """
-        Same as train_iter except don't use an optimizer and gradients or anything
-        like that
-        """
-        # todo: check if need to be kept
-        raise Exception
-        with torch.no_grad():
-            caption_tensor, color_tensor = pair
-            model_output = self.model(color_tensor, caption_tensor)
-
-            model_output = model_output.view(1, -1)
-            return model_output
+    # def evaluate_iter(self, pair):
+    #     """
+    #     Same as train_iter except don't use an optimizer and gradients or anything
+    #     like that
+    #     """
+    #     # todo: check if need to be kept
+    #     raise Exception
+    #     with torch.no_grad():
+    #         caption_tensor, color_tensor = pair
+    #         model_output = self.model(color_tensor, caption_tensor)
+    #
+    #         model_output = model_output.view(1, -1)
+    #         return model_output
 
     def evaluate(self, color_seqs, word_seqs, device=None):
         """
@@ -245,8 +249,6 @@ class LiteralListener(ColorListener):
         We overwrite this method as we're dealing with the listener here.
         :param batch:
         """
-        # todo: check code here for dealing with batch
-        #  y_batch = batch[: -1]
         y_batch = batch[2]
         seq_lengths = batch[1]
         # for utterances we use the last item from batch where the first symbol of sentence initiation has been dropped
@@ -256,7 +258,7 @@ class LiteralListener(ColorListener):
         # The expected distribution should be [0, 0, 1] giving a 1 probability to the last color, which is by
         # construction the target color
         expected_distribution = torch.ones(self.batch_size, dtype=int) * 2
-        #todo: batch_pred(m, voc, nwords) and ybatch (m, nwords)
+
         try:
             err = self.loss(batch_preds, expected_distribution)
         except ValueError:

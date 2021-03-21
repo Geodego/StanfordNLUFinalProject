@@ -1,9 +1,5 @@
-from project.data.data_file_path import data_dir, GLOVE_HOME, COLORS_SRC_FILENAME
+from project.data.data_split import build_corpus_repartition
 
 
 if __name__ == '__main__':
-
-    a = data_dir
-    b = GLOVE_HOME
-    c = COLORS_SRC_FILENAME
-    pass
+    build_corpus_repartition()

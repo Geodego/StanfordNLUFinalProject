@@ -127,6 +127,7 @@ class ColorAgent(TorchModelBase):
                  embed_dim=50,
                  hidden_dim=50,
                  freeze_embedding=False,
+                 color_dim=54,
                  **base_kwargs):
         """
         Ancestor of all colors agents. The primary interface to modeling contextual colors datasets.
@@ -153,6 +154,9 @@ class ColorAgent(TorchModelBase):
             If True, the embedding will be updated during training. If
             False, the embedding will be frozen. This parameter applies
             to both randomly initialized and pretrained embeddings.
+
+        color_dim: int
+        dimension of color embedding
 
         **base_kwargs
             For details, see `torch_model_base.py`.
@@ -190,16 +194,19 @@ class ColorAgent(TorchModelBase):
         super(ColorAgent, self).__init__(**base_kwargs)
         self.hidden_dim = hidden_dim
         self.embedding = embedding
-        self.color_dim = None
+        self.color_dim = color_dim
         self.freeze_embedding = freeze_embedding
         self.vocab = vocab
         self.vocab_size = len(vocab)
         self.word2index = dict(zip(self.vocab, range(self.vocab_size)))
         self.index2word = dict(zip(range(self.vocab_size), self.vocab))
-        self.embed_dim = embed_dim
+        if embedding is None:
+            self.embed_dim = embed_dim
+        else:
+            self.embed_dim = self.embedding.shape[1]
         self.output_dim = self.vocab_size
         self.unk_index = self.vocab.index(UNK_SYMBOL)
-        self.params += ['hidden_dim', 'embed_dim', 'embedding', 'freeze_embedding']
+        self.params += ['hidden_dim', 'embed_dim', 'embedding', 'freeze_embedding', 'color_dim']
 
     def build_dataset(self, *args, **kwargs):
         raise NotImplementedError
