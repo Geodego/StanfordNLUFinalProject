@@ -1,6 +1,7 @@
 import numpy as np
 import random
 import sys
+from sklearn.model_selection import GridSearchCV, StratifiedShuffleSplit
 
 
 __author__ = "Christopher Potts"
@@ -187,3 +188,4 @@ def create_pretrained_embedding(
             vocab.append(tok)
             embedding = np.vstack((embedding, randvec(dim)))
     return embedding, vocab
+

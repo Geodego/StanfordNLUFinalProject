@@ -2,9 +2,7 @@
 Save here the needed path for the project data
 """
 import os
-from pathlib import Path
-import sys
-from project.utils.tools import get_directory_path
+from ..utils.tools import get_directory_path
 
 
 data_dir = get_directory_path('data')
@@ -22,6 +20,7 @@ COLORS_MONROE_TEST = os.path.join(data_dir, "datasets/colors/monroe_split/test_c
 #   TRAIN_SPEAKER subset of training data used for speaker
 #   TRAIN_LISTENER subset of training data used for listener
 #   TRAIN_HYPER subset of training data used for optimizing hyperparameters
+STUDY_SPLIT = os.path.join(data_dir, "datasets/colors/study_split")
 STUDY_TRAIN = os.path.join(data_dir, "datasets/colors/study_split/train_corpus.csv")
 STUDY_DEV = os.path.join(data_dir, "datasets/colors/study_split/dev_corpus.csv")
 STUDY_TEST = os.path.join(data_dir, "datasets/colors/study_split/test_corpus.csv")
@@ -30,5 +29,5 @@ TRAIN_SPEAKER = os.path.join(data_dir, "datasets/colors/study_split/train_speake
 TRAIN_LISTENER = os.path.join(data_dir, "datasets/colors/study_split/train_listener.csv")
 TRAIN_HYPER = os.path.join(data_dir, "datasets/colors/study_split/train_hyper.csv")
 
-if __name__ == '__main__':
-    pass
+# database file
+COLOR_DB_PATH = os.path.join(data_dir, "study/color_db.sqlite")

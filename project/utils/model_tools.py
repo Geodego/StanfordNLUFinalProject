@@ -6,9 +6,9 @@ from project.models.transformer_based import TransformerDescriber
 from project.utils.tools import load_model_states
 
 
-def initialize_agent(agent, corpus_word_count=None, eta=0.001, batch_size=1024,
-                     glove_dim=None, prev_split=None, split_rate=None, max_iter=None, n_attention=1,
-                     feed_forward_size=75, early_stopping=False, optimizer='Adam', test=False, **kwargs):
+def initialize_agent(agent, action, corpus_word_count=None, eta=0.001, batch_size=1024,
+                     glove_dim=None, hidden_dim=None, prev_split=None, split_rate=None, max_iter=None, n_attention=1,
+                     feed_forward_size=75, early_stopping=False, optimizer='Adam', **kwargs):
     """
 
     :param agent:
@@ -23,25 +23,25 @@ def initialize_agent(agent, corpus_word_count=None, eta=0.001, batch_size=1024,
     :param feed_forward_size: for transformers
     :param optimizer:
     :param early_stopping:
-    :param test:
+    :param action: 'train', 'hyper' or 'test'
     :param kwargs: additional params for the model used
     :return:
     Initialized model with organised data
-    if test is False:
+    if action is not test:
     {'model': initialized model, 'seqs_train': , 'colors_train': , 'seqs_dev': featurized text,
     'colors_dev': Fourier transformed color, 'rawcolors_dev': colors as in corpus, 'texts_dev': raw text}
-    if test is True:
+    if action is test
     {'model': initialized model, 'seqs_test': , 'colors_test': }
     """
-    if not test:
+    if action != 'test':
         colors_train, seqs_train, colors_dev, seqs_dev, rawcolors_dev, texts_dev, train_vocab = process_data(
-            test=test,
+            action=action,
             corpus_word_count=corpus_word_count,
             prev_split=prev_split,
             split_rate=split_rate)
     else:
         colors_test, seqs_test, train_vocab = process_data(
-            test=test,
+            action=action,
             corpus_word_count=corpus_word_count,
             prev_split=prev_split,
             split_rate=split_rate)
@@ -52,6 +52,8 @@ def initialize_agent(agent, corpus_word_count=None, eta=0.001, batch_size=1024,
     sgd = getattr(torch.optim, optimizer)
     if max_iter is not None:
         kwargs['max_iter'] = max_iter
+    if hidden_dim is not None:
+        kwargs['hidden_dim'] = hidden_dim
     if agent == TransformerDescriber:
         kwargs['n_attention'] = n_attention
         kwargs['feedforward_size'] = feed_forward_size
@@ -61,12 +63,13 @@ def initialize_agent(agent, corpus_word_count=None, eta=0.001, batch_size=1024,
 
     model = agent(vocab=vocab, embedding=embedding, early_stopping=early_stopping, batch_size=batch_size, eta=eta,
                   optimizer_class=sgd, **kwargs)
-    if not test:
+    if action != 'test':
         output1 = {'model': model, 'seqs_train': seqs_train, 'colors_train': colors_train,
                    'seqs_dev': seqs_dev, 'colors_dev': colors_dev, 'rawcolors_dev': rawcolors_dev,
                    'texts_dev': texts_dev}
-    else:
+    elif action == 'test':
         output1 = {'model': model, 'seqs_test': seqs_test, 'colors_test': colors_test}
+
     return output1
 
 

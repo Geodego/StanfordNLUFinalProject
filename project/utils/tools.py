@@ -97,8 +97,13 @@ def time_calc(method):
         else:
             length = (te - ts) / 60
             print('execution time of {}  {:.2f} mn'.format(method.__name__, length))
+
         return result
 
     return timed
+
+
+
+
 
 
