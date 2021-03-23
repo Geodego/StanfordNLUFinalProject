@@ -11,5 +11,5 @@ if __name__ == '__main__':
     param_fixed = {'glove_dim': 100, 'optimizer': 'Adam',
                    'batch_size': 64, 'early_stopping': True}
     param_grid = {'eta': [0.0005, 0.001, 0.005, 0.01], 'hidden_dim': [50, 100, 150]}
-    c = task.hyperparameters_search(1, param_fixed, param_grid)
+    c = task.hyperparameters_search(4, param_fixed, param_grid)
     print('done, processes all done')

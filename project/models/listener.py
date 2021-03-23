@@ -249,6 +249,7 @@ class LiteralListener(ColorListener):
         We overwrite this method as we're dealing with the listener here.
         :param batch:
         """
+        self.model.to(self.device)
         y_batch = batch[2]
         seq_lengths = batch[1]
         # for utterances we use the last item from batch where the first symbol of sentence initiation has been dropped
