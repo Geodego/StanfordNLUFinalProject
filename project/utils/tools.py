@@ -10,7 +10,11 @@ PROJECT_DIRECTORY = 'project'
 
 
 def get_root_path():
-    root_path = Path(sys.path[0].split(ROOT_DIRECTORY)[0] + ROOT_DIRECTORY)
+    cwd_path = os.getcwd()
+    if cwd_path.split('/')[-1] == ROOT_DIRECTORY:
+        root_path = Path(cwd_path)
+    else:
+        root_path = Path(sys.path[0].split(ROOT_DIRECTORY)[0] + ROOT_DIRECTORY)
     return root_path
 
 

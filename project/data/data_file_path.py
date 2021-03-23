@@ -4,7 +4,6 @@ Save here the needed path for the project data
 import os
 from ..utils.tools import get_directory_path
 
-
 data_dir = get_directory_path('data')
 GLOVE_HOME = os.path.join(data_dir, 'datasets/glove')
 COLORS_SRC_FILENAME = os.path.join(data_dir, "datasets/colors/filteredCorpus.csv")
