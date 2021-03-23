@@ -1,6 +1,5 @@
 
 /project/data/datasets/glove/
-/project/data/datasets/colors/
 /project/data/pretrained_models/
 /colors_notes.ipynb
 /project/models/amortized speaker.py
