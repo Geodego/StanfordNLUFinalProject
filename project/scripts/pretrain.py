@@ -9,7 +9,7 @@ from project.utils.tools import time_calc
 @time_calc
 def train_and_save_agent(model, file_name, corpus_word_count=None,
                          max_iter=None, split_rate=None, prev_split=False, eta=0.001, batch_size=1024,
-                         glove_dim=50, hidden_dim=None, n_attention=1, feed_forward_size=75, optimizer='Adam',
+                         glove_dim=50, hidden_dim=None, n_attention=1, num_layers=1, feed_forward_size=75, optimizer='Adam',
                          early_stopping=False, silent=False, **kwargs):
     """
     Train and save neural speaker if a file name is given.
@@ -32,7 +32,7 @@ def train_and_save_agent(model, file_name, corpus_word_count=None,
     output = initialize_agent(agent=model, corpus_word_count=corpus_word_count, eta=eta,
                               batch_size=batch_size, glove_dim=glove_dim, prev_split=prev_split,
                               split_rate=split_rate, max_iter=max_iter, n_attention=n_attention,
-                              early_stopping=early_stopping,
+                              num_layers=num_layers, early_stopping=early_stopping, hidden_dim=hidden_dim,
                               feed_forward_size=feed_forward_size, optimizer=optimizer, **kwargs)
     model, colors_train, seqs_train = output['model'], output['colors_train'], output['seqs_train']
     model.fit(colors_train, seqs_train)
