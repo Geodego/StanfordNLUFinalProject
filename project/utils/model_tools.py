@@ -8,7 +8,7 @@ from project.utils.tools import load_model_states
 
 def initialize_agent(agent, action, corpus_word_count=None, eta=0.001, batch_size=1024,
                      glove_dim=None, hidden_dim=None, prev_split=None, split_rate=None, max_iter=None, n_attention=1,
-                     feed_forward_size=75, early_stopping=False, optimizer='Adam', **kwargs):
+                     num_layers=1, feed_forward_size=75, early_stopping=False, optimizer='Adam', **kwargs):
     """
 
     :param agent:
@@ -57,6 +57,7 @@ def initialize_agent(agent, action, corpus_word_count=None, eta=0.001, batch_siz
     if agent == TransformerDescriber:
         kwargs['n_attention'] = n_attention
         kwargs['feedforward_size'] = feed_forward_size
+        kwargs['num_layers'] = num_layers
         if embedding is not None:
             # makes sure the Transformer is built using the proper word embedding dim
             kwargs['hidden_dim'] = embedding.shape[1]
