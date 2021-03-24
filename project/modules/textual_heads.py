@@ -278,7 +278,15 @@ class TransformerTextualHead(TextualHead):
         # Form a binary mask: it is True for padding positions.
         # These positions will be ignored for multi-headed attention.
         ones = torch.ones_like(caption_tokens).to(self.device)
-        caption_mask = caption_lengths.unsqueeze(1) < ones.cumsum(dim=1)
+        caption_lengths = caption_lengths.to(self.device)
+        # todo: clean debug below
+        try:
+            caption_mask = caption_lengths.unsqueeze(1) < ones.cumsum(dim=1)
+        except:
+            print('ones device:')
+            print(ones.device)
+            print('caption_lengths device;')
+            print(caption_lengths.device)
         # shape: (batch_size, max_caption_length, textual_feature_size)
         caption_embeddings = self.embedding(caption_tokens)
 
