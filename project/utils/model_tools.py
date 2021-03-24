@@ -46,7 +46,7 @@ def initialize_agent(agent, action, corpus_word_count=None, eta=0.001, batch_siz
             prev_split=prev_split,
             split_rate=split_rate)
 
-    # If use_glove selected we use a Glove embedding and we need to modify the vocabulary accordingly
+    # If glove_gim is not None we use a Glove embedding and we need to modify the vocabulary accordingly
     embedding, vocab = load_embedding(glove_dim=glove_dim, vocab=train_vocab)
 
     sgd = getattr(torch.optim, optimizer)
