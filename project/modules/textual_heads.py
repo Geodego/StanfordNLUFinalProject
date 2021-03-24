@@ -173,9 +173,9 @@ class TransformerTextualHead(TextualHead):
             norm_type: str = "post",
             mask_future_positions: bool = True,
             max_caption_length: int = 60,
-            padding_idx: int = 0,
+            padding_idx: int = 0, **kwargs
     ):
-        super().__init__(visual_feature_size, vocab_size, hidden_size)
+        super().__init__(visual_feature_size, vocab_size, hidden_size, **kwargs)
         self.num_layers = num_layers
         self.attention_heads = attention_heads
         self.feedforward_size = feedforward_size
