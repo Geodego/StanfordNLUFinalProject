@@ -28,11 +28,12 @@ class TextualHead(nn.Module):
         language model.
     """
 
-    def __init__(self, visual_feature_size: int, vocab_size: int, hidden_size: int):
+    def __init__(self, visual_feature_size: int, vocab_size: int, hidden_size: int, device=None):
         super().__init__()
         self.visual_feature_size = visual_feature_size
         self.vocab_size = vocab_size
         self.hidden_size = hidden_size
+        self.device = device
 
     @property
     def textual_feature_size(self):
@@ -276,7 +277,7 @@ class TransformerTextualHead(TextualHead):
         # Create a mask based on caption lengths, shape: (batch_size, )
         # Form a binary mask: it is True for padding positions.
         # These positions will be ignored for multi-headed attention.
-        ones = torch.ones_like(caption_tokens)
+        ones = torch.ones_like(caption_tokens).to(self.device)
         caption_mask = caption_lengths.unsqueeze(1) < ones.cumsum(dim=1)
         # shape: (batch_size, max_caption_length, textual_feature_size)
         caption_embeddings = self.embedding(caption_tokens)
@@ -353,7 +354,6 @@ class TransformerDecoder(TransformerTextualHead):
                 hidden_size=self.textual_feature_size,
                 dropout=0.1,
                 max_caption_length=max_caption_length,
-                padding_idx=0,
-        )
+                padding_idx=0, device=self.device)
         if self.freeze_embedding:
             self.embedding.words.weight.requires_grad = False

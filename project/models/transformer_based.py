@@ -45,7 +45,7 @@ class TransformerDescriber(ContextualColorDescriber):
         decoder = TransformerDecoder(visual_feature_size=self.hidden_dim, vocab_size=self.vocab_size,
                                      hidden_size=self.hidden_dim, num_layers=self.num_layers,
                                      attention_heads=self.n_attention, feedforward_size=self.feedforward_size,
-                                     max_caption_length=self.max_caption_length, **kwargs)
+                                     max_caption_length=self.max_caption_length, device=self.device, **kwargs)
 
         decoder.to(self.device)  # makes sure the decoder is where we want
         self.embed_dim = decoder.embedding.words.embedding_dim

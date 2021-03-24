@@ -106,9 +106,9 @@ class WordandPositionalEmbeddingFromPretrained(WordAndPositionalEmbedding):
     Allow the use of pretrained embeddings.
     """
 
-    def __init__(self, embedding, freeze, *args, **kwargs):
+    def __init__(self, embedding, freeze, device, *args, **kwargs):
         super(WordandPositionalEmbeddingFromPretrained, self).__init__(*args, **kwargs)
-        embedding = torch.FloatTensor(embedding)
+        embedding = torch.FloatTensor(embedding).to(device)
         self.words = nn.Embedding.from_pretrained(embedding, freeze=freeze)
 
 
