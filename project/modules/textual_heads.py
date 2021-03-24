@@ -353,7 +353,7 @@ class TransformerDecoder(TransformerTextualHead):
         self.freeze_embedding = freeze_embedding
         if embedding is None:
             # In that case we keep embedding setup of the superclass, we just setup the freeze_embedding option
-            self.embedding.weight.requires_grad = not freeze_embedding
+            self.embedding.words.weight.requires_grad = not freeze_embedding
         else:
             self.embedding = WordandPositionalEmbeddingFromPretrained(
                 embedding=embedding,
