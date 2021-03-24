@@ -45,62 +45,62 @@ class TextualHead(nn.Module):
         return self.hidden_size
 
 
-class LinearTextualHead(TextualHead):
-    r"""
-    A textual head containing a single linear layer projecting from the visual
-    feature size to the output vocabulary size.
-
-    Parameters
-    ----------
-    visual_feature_size: int
-        Size (number of channels) of the input features from the visual backbone.
-    vocab_size: int
-        Number of tokens in the output vocabulary.
-    """
-
-    def __init__(self, visual_feature_size: int, vocab_size: int, **kwargs):
-        # For API consistency.
-        hidden_size = visual_feature_size
-        super().__init__(visual_feature_size, vocab_size, hidden_size)
-        self.output = nn.Linear(visual_feature_size, vocab_size)
-
-    def forward(
-            self,
-            visual_features: torch.Tensor,
-            caption_tokens: Optional[torch.Tensor] = None,
-            caption_lengths: Optional[torch.Tensor] = None,
-    ) -> torch.Tensor:
-        r"""
-        Project visual features directly to predict a distribution over
-        vocabulary tokens through a single linear layer. This textual head
-        ignores arguments ``caption_tokens`` and ``caption_lengths``, they
-        are here for API consistency.
-
-        Parameters
-        ----------
-        visual_features: torch.Tensor
-            A tensor of shape ``(batch_size, channels, height, width)`` containing
-            features from visual backbone.
-
-        Returns
-        -------
-        torch.Tensor
-            A tensor of shape ``(batch_size, vocab_size)`` containing output
-            vocabulary logits.
-        """
-
-        # Convert to NHWC and project visual features to textual feature size.
-        batch_size, channels, height, width = visual_features.size()
-        visual_features = visual_features.view(batch_size, channels, -1)
-        visual_features = visual_features.permute(0, 2, 1)
-
-        # Perform global average pooling of visual features.
-        # shape: (batch_size, channels)
-        visual_features = visual_features.mean(dim=1)
-
-        # shape: (batch_size, max_caption_length, vocab_size)
-        output_logits = self.output(visual_features)
-        return output_logits
+# class LinearTextualHead(TextualHead):
+#     r"""
+#     A textual head containing a single linear layer projecting from the visual
+#     feature size to the output vocabulary size.
+#
+#     Parameters
+#     ----------
+#     visual_feature_size: int
+#         Size (number of channels) of the input features from the visual backbone.
+#     vocab_size: int
+#         Number of tokens in the output vocabulary.
+#     """
+#
+#     def __init__(self, visual_feature_size: int, vocab_size: int, **kwargs):
+#         # For API consistency.
+#         hidden_size = visual_feature_size
+#         super().__init__(visual_feature_size, vocab_size, hidden_size)
+#         self.output = nn.Linear(visual_feature_size, vocab_size)
+#
+#     def forward(
+#             self,
+#             visual_features: torch.Tensor,
+#             caption_tokens: Optional[torch.Tensor] = None,
+#             caption_lengths: Optional[torch.Tensor] = None,
+#     ) -> torch.Tensor:
+#         r"""
+#         Project visual features directly to predict a distribution over
+#         vocabulary tokens through a single linear layer. This textual head
+#         ignores arguments ``caption_tokens`` and ``caption_lengths``, they
+#         are here for API consistency.
+#
+#         Parameters
+#         ----------
+#         visual_features: torch.Tensor
+#             A tensor of shape ``(batch_size, channels, height, width)`` containing
+#             features from visual backbone.
+#
+#         Returns
+#         -------
+#         torch.Tensor
+#             A tensor of shape ``(batch_size, vocab_size)`` containing output
+#             vocabulary logits.
+#         """
+#
+#         # Convert to NHWC and project visual features to textual feature size.
+#         batch_size, channels, height, width = visual_features.size()
+#         visual_features = visual_features.view(batch_size, channels, -1)
+#         visual_features = visual_features.permute(0, 2, 1)
+#
+#         # Perform global average pooling of visual features.
+#         # shape: (batch_size, channels)
+#         visual_features = visual_features.mean(dim=1)
+#
+#         # shape: (batch_size, max_caption_length, vocab_size)
+#         output_logits = self.output(visual_features)
+#         return output_logits
 
 
 class TransformerTextualHead(TextualHead):

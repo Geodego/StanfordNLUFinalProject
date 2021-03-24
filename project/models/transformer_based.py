@@ -47,6 +47,7 @@ class TransformerDescriber(ContextualColorDescriber):
                                      attention_heads=self.n_attention, feedforward_size=self.feedforward_size,
                                      max_caption_length=self.max_caption_length, **kwargs)
 
+        decoder.to(self.device)  # makes sure the decoder is where we want
         self.embed_dim = decoder.embedding.words.embedding_dim
         # Return a `TransformerEncoderDecoder` that uses Encoder and TransformerTextualHead
         output = TransformerEncoderDecoder(encoder, decoder)

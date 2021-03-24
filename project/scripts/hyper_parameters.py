@@ -23,7 +23,7 @@ def hyperparameters_search(model_class, param_grid, param_fixed):
         i += 1
     print("Best params: {}".format(best_param))
     print("Best accuracy: {}".format(max_accuracy))
-    print("cpu used: {}".format(output['model'].device))
+    print("Calc Unit used: {}".format(output['model'].device))
 
     return best_param, max_accuracy
 
