@@ -51,11 +51,12 @@ class TaskHandler:
         repartition = repartition.astype({'size': 'int64'})
         return repartition
 
-    def hyperparameters_search(self, model_id, param_fixed, param_grid):
+    def hyperparameters_search(self, model_id, param_fixed, param_grid, save_results=True):
         model_class = self.models[model_id]
         best_params, best_score = hyperparameters_search(model_class, param_grid, param_fixed)
         item = [model_id, param_fixed, param_grid, best_params, best_score]
-        ColorDB().write_hyper_search(item)
+        if save_results:
+            ColorDB().write_hyper_search(item)
         return best_params, best_score
 
 
