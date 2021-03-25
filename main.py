@@ -28,6 +28,22 @@ if __name__ == '__main__':
     param_fixed = {'early_stopping': True, 'optimizer': 'Adam', 'glove_dim': None, 'batch_size': 256,
                   'num_layers': 1, 'hidden_dim': 128, 'eta': 0.001}
     param_grid = {'n_attention': [1, 2], 'feedforward_size': [512, 600, 800]}
-    c = task.hyperparameters_search(3, param_fixed, param_grid, save_results=True)
+
     # 3 round batch/size early stopping
+    param_fixed = {'optimizer': 'Adam', 'batch_size': 128, 'early_stopping': True,
+                   'num_layers': 2, 'hidden_dim': 100, 'eta': 0.001, 'n_attention': 2, 'feedforward_size': 400}
+    param_grid = {'glove_dim': [100, None]}
+    c = task.hyperparameters_search(3, param_fixed, param_grid, save_results=True)
     # 4th round Adadelta
+    param_fixed = {'optimizer': 'Adadelta', 'glove_dim': 100, 'early_stopping': True, 'batch_size': 256,
+                   'num_layers': 2, 'hidden_dim': 100, 'n_attention': 2, 'feedforward_size': 400}
+    param_grid = {'eta': [0.10, 0.2, 0.3]}
+    #5th round refine glove/no glove, ffw size
+    # 6th round increase the number of layers
+    param_fixed = {'optimizer': 'Adam', 'batch_size': 128, 'early_stopping': True, 'glove_dim': None,
+                   'hidden_dim': 128, 'eta': 0.001, 'n_attention': 2, 'feedforward_size': 512}
+    param_grid = {'num_layers': [1, 2, 4]}
+    # 7th round increase 'hidden-dim'
+    param_fixed = {'optimizer': 'Adam', 'batch_size': 128, 'early_stopping': True, 'glove_dim': None,
+                   'num_layers': 2, 'eta': 0.001, 'feedforward_size': 512}
+    param_grid = {'hidden_dim': [128, 192], 'n_attention': [2, 3]}

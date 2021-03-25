@@ -7,6 +7,7 @@ from ..models.rnn_speaker import ColorizedInputDescriber
 from ..models.transformer_based import TransformerDescriber
 from ..models.listener import LiteralListener
 from ..scripts.hyper_parameters import hyperparameters_search
+from ..utils.utils import fix_random_seeds
 
 import os
 import pandas as pd
@@ -19,6 +20,7 @@ class TaskHandler:
         self.data_path = {'all_data': COLORS_SRC_FILENAME, 'train': STUDY_TRAIN, 'dev': STUDY_DEV, 'test': STUDY_TEST,
                           'speaker': TRAIN_SPEAKER, 'listener': TRAIN_LISTENER, 'hyper': TRAIN_HYPER}
         self.models = {1: ColorizedInputDescriber, 3: TransformerDescriber, 4: LiteralListener}
+        fix_random_seeds()
 
     def split_data_for_study(self):
         """Split the corpus data for the study and save the relevant files."""
