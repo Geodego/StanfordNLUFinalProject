@@ -24,9 +24,9 @@ class TransformerDescriber(ContextualColorDescriber):
         self.n_attention = n_attention
         self.max_caption_length = max_caption_length
         super(TransformerDescriber, self).__init__(*args, **kwargs)
-        self.beam_search = AutoRegressiveBeamSearch(
-            self.eos_index, beam_size=5, max_steps=max_decoding_steps
-        )
+        # self.beam_search = AutoRegressiveBeamSearch(
+        #     self.eos_index, beam_size=5, max_steps=max_decoding_steps
+        # )
 
     def build_graph(self):
 

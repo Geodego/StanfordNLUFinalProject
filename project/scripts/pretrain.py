@@ -98,7 +98,6 @@ def train_agent_with_params(agent, colors_train, seqs_train, colors_dev, seqs_de
         output['accuracy'] = score['accuracy']  # this must be a listener
         output['training_accuracy'] = score_training['accuracy']
 
-
     if not silent:
         print('\nscore training:')
         print(score_training)
