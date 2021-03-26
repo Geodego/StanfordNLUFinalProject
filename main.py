@@ -4,9 +4,9 @@ from project.data.study.database import ColorDB
 
 if __name__ == '__main__':
     task = TaskHandler()
-    # output = task.initialize_optimal_agent(hyper_id=3, action='hyper')
-    # agent, colors_dev, seqs_dev = (output[k] for k in ['model', 'colors_dev', 'seqs_dev'])
-    # d = agent.beam_search(colors_dev)
+    output = task.initialize_optimal_agent(hyper_id=3, action='hyper', corpus_word_count=2)
+    agent, colors_dev, seqs_dev = (output[k] for k in ['model', 'colors_dev', 'seqs_dev'])
+    d = agent.predict_beam_search(colors_dev)
 
     #corpus_word_count = None,
     # max_iter = None, split_rate = None, prev_split = False, eta = 0.001, batch_size = 1024,
