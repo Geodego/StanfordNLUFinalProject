@@ -93,6 +93,7 @@ class TaskHandler:
         :return:
         """
         action = self.actions[training_data_id]
+        print('data for training used: ' + action)
         agent_data = self.initialize_optimal_agent(hyper_id=hyper_id, action=action,
                                                    corpus_word_count=corpus_word_count)
         agent, colors_train, seqs_train, colors_dev, seqs_dev = (
@@ -129,6 +130,7 @@ class TaskHandler:
     def _get_hyper_parameters(self, hyper_id):
         hyper_params = ColorDB().read_hyper_parameters(hyper_id)
         model_class = self.models[hyper_params.pop('model')]
+        print('model used: {}'.format(model_class))
         # modify hyper_params so that it can be used to initialize the agent and get the corresponding data
         hyper_params['hidden_dim'] = hyper_params.pop('encoder_hidden_dim')
         hyper_params.pop('decoder_hidden_dim')
