@@ -27,7 +27,7 @@ if __name__ == '__main__':
                    'hidden_dim': 100, 'n_attention': 1, 'num_layers': 1}
     param_grid = {'eta': [0.001, 0.005, 0.01, 0.015], 'feedforward_size': [75, 200, 400, 600]}
 
-    output = task.train_and_save_agent(hyper_id=3, training_data_id=3, save_memory=True, corpus_word_count=2)
+    output = task.train_and_save_agent(hyper_id=3, training_data_id=3, save_memory=True)
     model, colors_dev, seqs_dev = (output[k] for k in ['model', 'colors_dev', 'seqs_dev'])
     score = model.evaluate(colors_dev, seqs_dev)
     pass
