@@ -4,6 +4,9 @@ from project.data.study.database import ColorDB
 
 if __name__ == '__main__':
     task = TaskHandler()
+    output = task.initialize_optimal_agent(hyper_id=3, action='hyper')
+    agent, colors_dev, seqs_dev = (output[k] for k in ['model', 'colors_dev', 'seqs_dev'])
+    d = agent.beam_search(colors_dev)
 
     #corpus_word_count = None,
     # max_iter = None, split_rate = None, prev_split = False, eta = 0.001, batch_size = 1024,
@@ -24,7 +27,7 @@ if __name__ == '__main__':
                    'hidden_dim': 100, 'n_attention': 1, 'num_layers': 1}
     param_grid = {'eta': [0.001, 0.005, 0.01, 0.015], 'feedforward_size': [75, 200, 400, 600]}
 
-    output = task.train_and_save_agent(hyper_id=3, training_data_id=3)
+    output = task.train_and_save_agent(hyper_id=2, training_data_id=3)
     model, colors_dev, seqs_dev = (output[k] for k in ['model', 'colors_dev', 'seqs_dev'])
     score = model.evaluate(colors_dev, seqs_dev)
     pass

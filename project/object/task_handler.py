@@ -85,11 +85,13 @@ class TaskHandler:
         output = initialize_agent(action=action, **hyper_params)
         return output
 
-    def train_and_save_agent(self, hyper_id: int, training_data_id: int, corpus_word_count=None, silent=False):
+    def train_and_save_agent(self, hyper_id: int, training_data_id: int, save_memory=False, corpus_word_count=None,
+                             silent=False):
         """
 
         :param hyper_id: id in table HyperParameters in ColorDB.
         :param training_data_id: id in table DataSplit of the corpus on which the training is done.
+        :param save_memory: if model is to big just train, don't do the eval to save memory
         :return:
         """
         action = self.actions[training_data_id]
@@ -98,7 +100,7 @@ class TaskHandler:
                                                    corpus_word_count=corpus_word_count)
         agent, colors_train, seqs_train, colors_dev, seqs_dev = (
             agent_data[k] for k in ['model', 'colors_train', 'seqs_train', 'colors_dev', 'seqs_dev'])
-        output = train_agent_with_params(agent, colors_train, seqs_train, colors_dev, seqs_dev, silent)
+        output = train_agent_with_params(agent, colors_train, seqs_train, colors_dev, seqs_dev, save_memory, silent)
 
         # save the trained agent
         fields = ['accuracy', 'corpus_bleu', 'training_accuracy', 'vocab_size', 'time_calc']

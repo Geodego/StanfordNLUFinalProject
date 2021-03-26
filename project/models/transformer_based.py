@@ -1,5 +1,6 @@
 from .torch_color_describer import Encoder, EncoderDecoder, ContextualColorDescriber
 from ..modules.textual_heads import TransformerDecoder
+from ..utils.beam_search import AutoRegressiveBeamSearch
 import torch
 
 
@@ -23,6 +24,9 @@ class TransformerDescriber(ContextualColorDescriber):
         self.n_attention = n_attention
         self.max_caption_length = max_caption_length
         super(TransformerDescriber, self).__init__(*args, **kwargs)
+        self.beam_search = AutoRegressiveBeamSearch(
+            self.eos_index, beam_size=5, max_steps=max_decoding_steps
+        )
 
     def build_graph(self):
 
@@ -135,7 +139,7 @@ class TransformerDescriber(ContextualColorDescriber):
 
         return preds
 
-    def beam_search(self, color_seqs, max_length=20, beam_size=2, device=None):
+    def beam_search_prev(self, color_seqs, max_length=20, beam_size=2, device=None):
         """
         Predict new sequences based on the color contexts in
         `color_seqs` using beam search.
@@ -145,6 +149,7 @@ class TransformerDescriber(ContextualColorDescriber):
         :param beam_size:
         :return:
         """
+        # todo: remove?
         device = self.device if device is None else torch.device(device)
 
         color_seqs = torch.FloatTensor(color_seqs)
@@ -199,6 +204,92 @@ class TransformerDescriber(ContextualColorDescriber):
         self.model.to(self.device)
 
         return preds
+
+    def eval_beam_search(self, color_seqs, max_length=20, beam_size=2, device=None):
+        device = self.device if device is None else torch.device(device)
+
+        color_seqs = torch.FloatTensor(color_seqs)
+        color_seqs = color_seqs.to(device)
+
+        self.model.to(device)
+
+        self.model.eval()
+        batch_size = color_seqs.size(0)
+        start_predictions = color_seqs.new_full((batch_size,), self.start_index).long()
+        # Add image features as a default argument to match callable
+        # signature accepted by beam search class (partial captions only).
+        beam_search_step = functools.partial(
+            self.beam_search_step, visual_features
+        )
+        all_top_k_predictions, _ = self.beam_search.search(
+            start_predictions, beam_search_step
+        )
+        best_beam = all_top_k_predictions[:, 0, :]
+        output_dict = {"predictions": best_beam}
+        return output_dict
+
+    def beam_search_step(
+        self, visual_features: torch.Tensor, partial_captions: torch.Tensor
+    ) -> torch.Tensor:
+        #todo: keep?
+        r"""
+        Given visual features and a batch of (assumed) partial captions, predict
+        the distribution over vocabulary tokens for next time-step. This method
+        is used by :class:`~virtex.utils.beam_search.AutoRegressiveBeamSearch`.
+
+        Parameters
+        ----------
+        projected_visual_features: torch.Tensor
+            A tensor of shape ``(batch_size, ..., textual_feature_size)``
+            with visual features already projected to ``textual_feature_size``.
+        partial_captions: torch.Tensor
+            A tensor of shape ``(batch_size * beam_size, timesteps)``
+            containing tokens predicted so far -- one for each beam. We need all
+            prior predictions because our model is auto-regressive.
+
+        Returns
+        -------
+        torch.Tensor
+            A tensor of shape ``(batch_size * beam_size, vocab_size)`` -- output
+            distribution over tokens for next time-step.
+        """
+
+        # Expand and repeat image features while doing beam search.
+        batch_size, channels, height, width = visual_features.size()
+        beam_size = int(partial_captions.size(0) / batch_size)
+        if beam_size > 1:
+            # shape: (batch_size * beam_size, channels, height, width)
+            visual_features = visual_features.unsqueeze(1).repeat(1, beam_size, 1, 1, 1)
+            visual_features = visual_features.view(
+                batch_size * beam_size, channels, height, width
+            )
+
+        # Provide caption lengths as current length (irrespective of predicted
+        # EOS/padding tokens). shape: (batch_size, )
+        caption_lengths = torch.ones_like(partial_captions)
+        if len(caption_lengths.size()) == 2:
+            caption_lengths = caption_lengths.sum(1)
+        else:
+            # Add a time-step. shape: (batch_size, 1)
+            partial_captions = partial_captions.unsqueeze(1)
+
+        # shape: (batch_size * beam_size, partial_caption_length, vocab_size)
+        output_logits = self.textual(
+            visual_features, partial_captions, caption_lengths
+        )
+        # Keep features for last time-step only, we only care about those.
+        output_logits = output_logits[:, -1, :]
+
+        # Return logprobs as required by `AutoRegressiveBeamSearch`.
+        # shape: (batch_size * beam_size, vocab_size)
+        next_logprobs = F.log_softmax(output_logits, dim=1)
+
+        # Set logprobs of last predicted tokens as high negative value to avoid
+        # repetition in caption.
+        for index in range(batch_size * beam_size):
+            next_logprobs[index, partial_captions[index, -1]] = -10000
+
+        return next_logprobs
 
 
 class TransformerEncoderDecoder(EncoderDecoder):

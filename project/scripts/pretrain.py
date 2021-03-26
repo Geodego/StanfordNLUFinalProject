@@ -66,7 +66,7 @@ def train_and_save_agent(model, file_name, corpus_word_count=None,
 
 
 @time_calc
-def train_agent_with_params(agent, colors_train, seqs_train, colors_dev, seqs_dev, silent=False):
+def train_agent_with_params(agent, colors_train, seqs_train, colors_dev, seqs_dev, save_memory=False, silent=False):
     """
 
     :param agent: agent initialized with vocabulary corresponding to training data.
@@ -78,9 +78,18 @@ def train_agent_with_params(agent, colors_train, seqs_train, colors_dev, seqs_de
     :return:
     """
     agent.fit(colors_train, seqs_train)
+    output = {'model': agent}
+    vocab = agent.vocab_size
+    output['vocab_size'] = vocab
+
+    if save_memory:
+        for k in ['accuracy', 'corpus_bleu', 'training_accuracy']:
+            output[k] = None
+        return output
+
     score_training = agent.evaluate(colors_train, seqs_train)
     score = agent.evaluate(colors_dev, seqs_dev)
-    output = {'model': agent}
+
     try:
         output['accuracy'] = score['listener_accuracy']
         output['corpus_bleu'] = score['corpus_bleu']
@@ -88,8 +97,7 @@ def train_agent_with_params(agent, colors_train, seqs_train, colors_dev, seqs_de
     except KeyError:
         output['accuracy'] = score['accuracy']  # this must be a listener
         output['training_accuracy'] = score_training['accuracy']
-    vocab = agent.vocab_size
-    output['vocab_size'] = vocab
+
 
     if not silent:
         print('\nscore training:')
