@@ -155,7 +155,7 @@ class TransformerDescriber(ContextualColorDescriber):
         self.model.eval()
 
         beam_pred = []  # store the captions for beam search
-        beam_proba = []  # store the probabilities of captions in beam_pred
+        beam_proba = [[1] for i in range(beam_size)]   # store the probabilities of captions in beam_pred
 
         with torch.no_grad():
             # Get the hidden representations from the color contexts:
