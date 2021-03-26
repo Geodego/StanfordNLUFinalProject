@@ -2,6 +2,7 @@ from .torch_color_describer import Encoder, EncoderDecoder, ContextualColorDescr
 from ..modules.textual_heads import TransformerDecoder
 from ..utils.beam_search import AutoRegressiveBeamSearch
 import torch
+import functools
 
 
 class TransformerDescriber(ContextualColorDescriber):
@@ -10,7 +11,8 @@ class TransformerDescriber(ContextualColorDescriber):
     embeddings: pretrained embeddings
     """
 
-    def __init__(self, *args, num_layers=1, n_attention=None, feedforward_size=None, max_caption_length=100, **kwargs):
+    def __init__(self, *args, num_layers=1, n_attention=None, feedforward_size=None,
+                 max_caption_length=100, max_decoding_steps=20, **kwargs):
         """
 
         :param args:
@@ -24,9 +26,9 @@ class TransformerDescriber(ContextualColorDescriber):
         self.n_attention = n_attention
         self.max_caption_length = max_caption_length
         super(TransformerDescriber, self).__init__(*args, **kwargs)
-        # self.beam_search = AutoRegressiveBeamSearch(
-        #     self.eos_index, beam_size=5, max_steps=max_decoding_steps
-        # )
+        self.beam_search = AutoRegressiveBeamSearch(
+            self.end_index, beam_size=2, max_steps=max_decoding_steps
+        )
 
     def build_graph(self):
 
@@ -205,7 +207,7 @@ class TransformerDescriber(ContextualColorDescriber):
 
         return preds
 
-    def eval_beam_search(self, color_seqs, max_length=20, beam_size=2, device=None):
+    def predict_beam_search(self, color_seqs, device=None):
         device = self.device if device is None else torch.device(device)
 
         color_seqs = torch.FloatTensor(color_seqs)
@@ -218,9 +220,7 @@ class TransformerDescriber(ContextualColorDescriber):
         start_predictions = color_seqs.new_full((batch_size,), self.start_index).long()
         # Add image features as a default argument to match callable
         # signature accepted by beam search class (partial captions only).
-        beam_search_step = functools.partial(
-            self.beam_search_step, visual_features
-        )
+        beam_search_step = functools.partial(self.beam_search_step, color_seqs)
         all_top_k_predictions, _ = self.beam_search.search(
             start_predictions, beam_search_step
         )
@@ -255,14 +255,13 @@ class TransformerDescriber(ContextualColorDescriber):
         """
 
         # Expand and repeat image features while doing beam search.
-        batch_size, channels, height, width = visual_features.size()
+        batch_size, channels, height = visual_features.size()  # todo: check, remove width
         beam_size = int(partial_captions.size(0) / batch_size)
         if beam_size > 1:
-            # shape: (batch_size * beam_size, channels, height, width)
+            # shape: (batch_size * beam_size, channels, height)
             visual_features = visual_features.unsqueeze(1).repeat(1, beam_size, 1, 1, 1)
             visual_features = visual_features.view(
-                batch_size * beam_size, channels, height, width
-            )
+                batch_size * beam_size, channels, height)
 
         # Provide caption lengths as current length (irrespective of predicted
         # EOS/padding tokens). shape: (batch_size, )
@@ -274,15 +273,13 @@ class TransformerDescriber(ContextualColorDescriber):
             partial_captions = partial_captions.unsqueeze(1)
 
         # shape: (batch_size * beam_size, partial_caption_length, vocab_size)
-        output_logits = self.textual(
-            visual_features, partial_captions, caption_lengths
-        )
+        output_logits = self.model(visual_features, partial_captions, caption_lengths)
         # Keep features for last time-step only, we only care about those.
         output_logits = output_logits[:, -1, :]
 
         # Return logprobs as required by `AutoRegressiveBeamSearch`.
         # shape: (batch_size * beam_size, vocab_size)
-        next_logprobs = F.log_softmax(output_logits, dim=1)
+        next_logprobs = torch.nn.functional.log_softmax(output_logits, dim=1)
 
         # Set logprobs of last predicted tokens as high negative value to avoid
         # repetition in caption.
