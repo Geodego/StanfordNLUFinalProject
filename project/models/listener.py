@@ -137,6 +137,7 @@ class LiteralListener(ColorListener):
         self.color_dim = color_dim
         self.model = None
         self.loss = nn.CrossEntropyLoss()
+        self.build_graph()
 
     def build_graph(self):
         self.model = CaptionEncoder(embed_dim=self.embed_dim, hidden_dim=self.hidden_dim, vocab_size=self.vocab_size,
@@ -153,7 +154,6 @@ class LiteralListener(ColorListener):
         tensor(nber items, 3). Each row gives the proba given to colors 1, 2 and 3 given the corresponding utterance in
         in word_seqs.
         """
-        # todo: check if need to be kept, or modified in a more vectorized fashion
         device = self.device if device is None else torch.device(device)
         dataset = self.build_dataset(color_seqs, word_seqs)
         dataloader = self._build_dataloader(dataset, shuffle=False)
@@ -161,13 +161,6 @@ class LiteralListener(ColorListener):
         self.model.eval()
         model_outputs = torch.tensor([]).to(device)
         with torch.no_grad():
-
-            # for i, feature in enumerate(zip(word_seqs, color_seqs)):
-            #     caption, colors = feature
-            #     caption = torch.tensor([caption], dtype=torch.long)
-            #     colors = torch.tensor([colors], dtype=torch.float)
-            #     model_output_np = self.evaluate_iter((caption, colors)).view(-1).numpy()
-            #     model_outputs.append(model_output_np)
             for batch_words, batch_lengths, batch_colors in dataloader:
                 batch_colors = batch_colors.to(device)
                 batch_words = batch_words.to(device)
@@ -178,37 +171,6 @@ class LiteralListener(ColorListener):
         probabilities = softmax(model_outputs)
         self.model.train()
         return probabilities
-
-    # def train_iter(self, caption_tensor, color_tensor, target, criterion):
-    #     """
-    #     Iterates through a single training pair, querying the model, getting a loss and
-    #     updating the parameters. (TODO: add some kind of batching to this).
-    #     """
-    #     # todo: check if need to be kept
-    #     raise Exception
-    #     input_length = caption_tensor.size(0)
-    #     loss = 0
-    #
-    #     model_output = self.model(color_tensor, caption_tensor)
-    #     model_output = model_output.view(1, -1)
-    #
-    #     loss += criterion(model_output, target)
-    #
-    #     return loss
-
-    # def evaluate_iter(self, pair):
-    #     """
-    #     Same as train_iter except don't use an optimizer and gradients or anything
-    #     like that
-    #     """
-    #     # todo: check if need to be kept
-    #     raise Exception
-    #     with torch.no_grad():
-    #         caption_tensor, color_tensor = pair
-    #         model_output = self.model(color_tensor, caption_tensor)
-    #
-    #         model_output = model_output.view(1, -1)
-    #         return model_output
 
     def evaluate(self, color_seqs, word_seqs, device=None):
         """

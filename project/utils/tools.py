@@ -101,10 +101,30 @@ def time_calc(method):
         else:
             length = (te - ts) / 60
             print('execution time of {}  {:.2f} mn'.format(method.__name__, length))
-
+        try:
+            result['time_calc'] = length
+        except TypeError:
+            pass
         return result
 
     return timed
+
+
+def list_to_sql(input_list):
+    """transform a list of value into a sql list that can be used in a request"""
+    if not isinstance(input_list, list):
+        input_list = [input_list]
+    str_inputlist = []
+
+    for item in input_list:
+        if isinstance(item, str):
+            new_item = '"{}"'.format(item)  # a string needs to be between quotes in a sql requests
+            str_inputlist.append(new_item)
+        else:
+            str_inputlist.append(str(item))
+    sql_list = "(" + ", ".join(str_inputlist) + ")"
+
+    return sql_list
 
 
 

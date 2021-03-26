@@ -8,6 +8,9 @@ from ..models.transformer_based import TransformerDescriber
 from ..models.listener import LiteralListener
 from ..scripts.hyper_parameters import hyperparameters_search
 from ..utils.utils import fix_random_seeds
+from ..utils.model_tools import initialize_agent, load_pretrained_agent
+from ..scripts.pretrain import train_agent_with_params
+from ..utils.tools import save_model, load_model_states
 
 import os
 import pandas as pd
@@ -20,6 +23,8 @@ class TaskHandler:
         self.data_path = {'all_data': COLORS_SRC_FILENAME, 'train': STUDY_TRAIN, 'dev': STUDY_DEV, 'test': STUDY_TEST,
                           'speaker': TRAIN_SPEAKER, 'listener': TRAIN_LISTENER, 'hyper': TRAIN_HYPER}
         self.models = {1: ColorizedInputDescriber, 3: TransformerDescriber, 4: LiteralListener}
+        self.optimizers = {1: 'Adam', 2: 'Adadelta'}
+        self.actions = {2: 'test', 3: 'train', 4: 'hyper', 5: 'train_listener', 6: 'train_speaker'}
         fix_random_seeds()
 
     def split_data_for_study(self):
@@ -60,6 +65,85 @@ class TaskHandler:
         if save_results:
             ColorDB().write_hyper_search(item)
         return best_params, best_score
+
+    def initialize_optimal_agent(self, hyper_id, action, corpus_word_count=None):
+        """
+        Return initialized agent with optimal hyperparameters saved in ColorDB
+        :param hyper_id:
+        :param action:
+        :param corpus_word_count:
+        :return:
+        Initialized model with organised data
+        if action is not test:
+        {'model': initialized model, 'seqs_train': , 'colors_train': , 'seqs_dev': featurized text,
+        'colors_dev': Fourier transformed color, 'rawcolors_dev': colors as in corpus, 'texts_dev': raw text}
+        if action is test
+        {'model': initialized model, 'seqs_test': , 'colors_test': }
+        """
+        hyper_params = self._get_hyper_parameters(hyper_id)
+        hyper_params['corpus_word_count'] = corpus_word_count
+        output = initialize_agent(action=action, **hyper_params)
+        return output
+
+    def train_and_save_agent(self, hyper_id: int, training_data_id: int, corpus_word_count=None, silent=False):
+        """
+
+        :param hyper_id: id in table HyperParameters in ColorDB.
+        :param training_data_id: id in table DataSplit of the corpus on which the training is done.
+        :return:
+        """
+        action = self.actions[training_data_id]
+        agent_data = self.initialize_optimal_agent(hyper_id=hyper_id, action=action,
+                                                   corpus_word_count=corpus_word_count)
+        agent, colors_train, seqs_train, colors_dev, seqs_dev = (
+            agent_data[k] for k in ['model', 'colors_train', 'seqs_train', 'colors_dev', 'seqs_dev'])
+        output = train_agent_with_params(agent, colors_train, seqs_train, colors_dev, seqs_dev, silent)
+
+        # save the trained agent
+        fields = ['accuracy', 'corpus_bleu', 'training_accuracy', 'vocab_size', 'time_calc']
+        try:
+            results = [output[k] for k in fields]
+        except KeyError:
+            # this is a listener
+            output['corpus_bleu'] = None
+            results = [output[k] for k in fields]
+
+        item = [hyper_id, training_data_id] + results
+        trained_agent_id = ColorDB().write_trained_agent(item)
+        # save the trained agent parameters
+        file_name = "trained_agent_{}".format(trained_agent_id)
+        trained_model = output['model'].model
+        save_model(trained_model, file_name)
+
+    def load_trained_model(self, trained_agent_id, corpus_word_count=None):
+        hyper_param_id, training_data_id = (ColorDB().read_trained_agent(trained_agent_id)[k]
+                                            for k in ['hyper_param_id', 'training_data_id'])
+        action = self.actions[training_data_id]
+        agent_data = self.initialize_optimal_agent(hyper_id=hyper_param_id, action=action,
+                                                   corpus_word_count=corpus_word_count)
+        agent = agent_data['model']
+        file_params = "trained_agent_{}".format(trained_agent_id)
+        agent.model = load_model_states(agent.model, file_params)
+        return agent_data
+
+    def _get_hyper_parameters(self, hyper_id):
+        hyper_params = ColorDB().read_hyper_parameters(hyper_id)
+        model_class = self.models[hyper_params.pop('model')]
+        # modify hyper_params so that it can be used to initialize the agent and get the corresponding data
+        hyper_params['hidden_dim'] = hyper_params.pop('encoder_hidden_dim')
+        hyper_params.pop('decoder_hidden_dim')
+        hyper_params.pop('number_epochs')
+        hyper_params.pop('id')
+        hyper_params['agent'] = model_class
+        hyper_params['optimizer'] = self.optimizers[hyper_params['optimizer']]
+        hyper_params['n_attention'] = hyper_params.pop('attention_heads')
+        hyper_params['num_layers'] = hyper_params.pop('number_layers')
+        hyper_params['eta'] = hyper_params.pop('learning_rate')
+        hyper_params['early_stopping'] = True if hyper_params['early_stopping'] == 1 else False
+
+        glove_dim = None if hyper_params.pop('word_embedding') == 1 else 100
+        hyper_params['glove_dim'] = glove_dim
+        return hyper_params
 
 
 

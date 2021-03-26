@@ -24,7 +24,7 @@ def get_files(action):
 def get_color_split(action: str = 'train', corpus_word_count: int = None, prev_split=False, split_rate=None):
     """
     Split corpus in colors and utterances.
-    :param action: if train returns colors_train, texts_train, colors_dev, texts_dev.
+    :param action: if 'train' or 'train_speaker' or 'train_listener' returns corresponding colors_train, texts_train, colors_dev, texts_dev.
     if test: returns colors_test, texts_test
     if hyper returns colors_hyper, texts_hyper
     :param corpus_word_count: used to get a reduced version of the corpus including only corpus_word_count utterances.

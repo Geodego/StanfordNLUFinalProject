@@ -70,11 +70,7 @@ class WordAndPositionalEmbedding(nn.Module):
 
         # shape: (batch_size, max_caption_length, hidden_size)
         word_embeddings = self.words(tokens)
-        #todo: remove try except
-        try:
-            position_embeddings = self.positions(position_indices)
-        except:
-            pass
+        position_embeddings = self.positions(position_indices)
 
         # shape: (batch_size, max_caption_length, hidden_size)
         embeddings = self.layer_norm(word_embeddings + position_embeddings)

@@ -1,6 +1,7 @@
 import sqlite3
 import json
 from ..data_file_path import COLOR_DB_PATH
+from ...utils.tools import list_to_sql
 
 
 class ColorDB:
@@ -34,3 +35,55 @@ class ColorDB:
         self.cursor.execute(request, item)
         self.con.commit()
         self.cursor.close()
+
+    def write_trained_agent(self, item):
+        self.cursor = self.con.cursor()
+        request = """
+        SELECT MAX(ID) FROM TrainedAgent
+        """
+        max_id = self.cursor.execute(request).fetchall()[0][0]
+        if max_id is not None:
+            max_id += 1
+        else:
+            max_id = 1
+        item = max_id, *item
+        request = """
+                INSERT INTO TrainedAgent (id, hyper_param_id, training_data_id, accuracy, corpus_bleu, 
+                training_accuracy, vocab_size, time_to_train)
+                VALUES (?,?,?,?,?,?,?,?)
+                """
+        self.cursor.execute(request, item)
+        self.con.commit()
+        self.cursor.close()
+        return max_id
+
+    def read_hyper_parameters(self, model_id):
+        self.cursor = self.con.cursor()
+        request = """
+        SELECT * FROM HyperParameters WHERE id IS {}""".format(model_id)
+        self.cursor.execute(request)
+        sql_output = self.cursor.fetchall()
+        columns = self.get_column_names('HyperParameters')  # list of HyperParameters column names
+        dict_data = {col: value for (col, value) in zip(columns, sql_output[0])}
+        return dict_data
+
+    def read_trained_agent(self, trained_agent_id):
+        self.cursor = self.con.cursor()
+        request = """
+                SELECT * FROM TrainedAgent WHERE id IS {}""".format(trained_agent_id)
+        self.cursor.execute(request)
+        sql_output = self.cursor.fetchall()
+        columns = self.get_column_names('TrainedAgent')  # list of TrainedAgent column names
+        dict_data = {col: value for (col, value) in zip(columns, sql_output[0])}
+        return dict_data
+
+    def get_column_names(self, table_name):
+        """"return a list of the column names of table table_name"""
+        self.cursor = self.con.cursor()
+        request = "SELECT * FROM {}".format(list_to_sql(table_name))
+        self.cursor.execute(request)
+        names = [description[0] for description in self.cursor.description]
+        self.cursor.close()
+        return names
+
+

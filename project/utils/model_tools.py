@@ -16,6 +16,7 @@ def initialize_agent(agent, action, corpus_word_count=None, eta=0.001, batch_siz
     :param eta:
     :param batch_size:
     :param glove_dim:
+    :param hidden_dim:
     :param prev_split: if true use train_test_split on all data
     :param split_rate: used if analysis is done on a restricted part of the training data.
     :param max_iter:
@@ -23,7 +24,7 @@ def initialize_agent(agent, action, corpus_word_count=None, eta=0.001, batch_siz
     :param feed_forward_size: for transformers
     :param optimizer:
     :param early_stopping:
-    :param action: 'train', 'hyper' or 'test'
+    :param action: 'train', 'train_speaker', 'train_listener', 'hyper' or 'test'
     :param kwargs: additional params for the model used
     :return:
     Initialized model with organised data
