@@ -220,7 +220,9 @@ class LiteralListener(ColorListener):
         We overwrite this method as we're dealing with the listener here.
         :param batch:
         """
+        print('check 0')
         self.model.to(self.device)
+        batch.to(self.device)
         y_batch = batch[2]
         seq_lengths = batch[1]
         # for utterances we use the last item from batch where the first symbol of sentence initiation has been dropped
@@ -231,7 +233,8 @@ class LiteralListener(ColorListener):
         # construction the target color
         expected_distribution = torch.ones(self.batch_size, dtype=int) * 2
         expected_distribution.to(self.device)
-
+        # todo: cleen checks
+        print('check 1')
         try:
             err = self.loss(batch_preds, expected_distribution)
         except ValueError:
@@ -239,6 +242,8 @@ class LiteralListener(ColorListener):
             current_size = X_batch.shape[0]
             expected_distribution = torch.ones(current_size, dtype=int) * 2
             expected_distribution.to(self.device)
+            print('check 2')
             err = self.loss(batch_preds, expected_distribution)
+            print('check3')
         return err
 
