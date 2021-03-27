@@ -126,7 +126,7 @@ class TaskHandler:
                                                    corpus_word_count=corpus_word_count)
         agent = agent_data['model']
         file_params = "trained_agent_{}".format(trained_agent_id)
-        agent.model = load_model_states(agent.model, file_params)
+        agent.model = load_model_states(agent.model, file_params, device=agent.device)
         return agent_data
 
     def _get_hyper_parameters(self, hyper_id):

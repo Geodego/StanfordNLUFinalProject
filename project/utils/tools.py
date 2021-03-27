@@ -48,7 +48,7 @@ def save_model(model: nn.Module, file_name: str):
     torch.save(model.state_dict(), file_path)
 
 
-def load_model_states(model: nn.Module, file_name: str):
+def load_model_states(model: nn.Module, file_name: str, device):
     """
     load trained parameters of model, saved in file_name
     :param model:
@@ -58,7 +58,7 @@ def load_model_states(model: nn.Module, file_name: str):
     """
     data_path = get_directory_path('data')
     file_path = os.path.join(data_path, 'pretrained_models/' + file_name + '.pt')
-    model.load_state_dict(torch.load(file_path))
+    model.load_state_dict(torch.load(file_path, map_location=torch.device(device)))
     return model
 
 

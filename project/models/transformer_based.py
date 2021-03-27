@@ -225,8 +225,14 @@ class TransformerDescriber(ContextualColorDescriber):
             start_predictions, beam_search_step
         )
         best_beam = all_top_k_predictions[:, 0, :]
-        output_dict = {"predictions": best_beam}
-        return output_dict
+        # Convert all the predictions from indices to elements of
+        # `self.vocab`:
+        #todo: debug below
+        best_beam = torch.cat(best_beam, axis=1)
+        preds = [self._convert_predictions(p) for p in best_beam]
+
+        self.model.to(self.device)
+        return preds
 
     def beam_search_step(
         self, visual_features: torch.Tensor, partial_captions: torch.Tensor
