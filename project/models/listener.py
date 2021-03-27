@@ -146,7 +146,6 @@ class LiteralListener(ColorListener):
         if device is None:
             device = "cuda" if torch.cuda.is_available() else "cpu"
         self.device = torch.device(device)
-        print(self.device)
 
     def build_graph(self):
         self.model = CaptionEncoder(embed_dim=self.embed_dim, hidden_dim=self.hidden_dim, vocab_size=self.vocab_size,
@@ -221,8 +220,6 @@ class LiteralListener(ColorListener):
         We overwrite this method as we're dealing with the listener here.
         :param batch:
         """
-        print('check 0')
-        print(self.device)
         self.model.to(self.device)
         y_batch = batch[2]
         seq_lengths = batch[1]
@@ -234,21 +231,13 @@ class LiteralListener(ColorListener):
         # construction the target color
         expected_distribution = torch.ones(self.batch_size, dtype=int) * 2
         expected_distribution = expected_distribution.to(self.device)
-        # todo: cleen checks
-        print('check 1')
         try:
-            print(batch_preds.device)
-            print(expected_distribution.device)
-            import time
-            time.sleep(5)
             err = self.loss(batch_preds, expected_distribution)
         except ValueError:
             # last iteration of the batch has smaller dimension than self.batch_size
             current_size = X_batch.shape[0]
             expected_distribution = torch.ones(current_size, dtype=int) * 2
-            expected_distribution.to(self.device)
-            print('check 2')
+            expected_distribution = expected_distribution.to(self.device)
             err = self.loss(batch_preds, expected_distribution)
-            print('check3')
         return err
 
