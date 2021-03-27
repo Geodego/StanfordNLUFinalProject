@@ -233,7 +233,7 @@ class LiteralListener(ColorListener):
         # The expected distribution should be [0, 0, 1] giving a 1 probability to the last color, which is by
         # construction the target color
         expected_distribution = torch.ones(self.batch_size, dtype=int) * 2
-        expected_distribution.to(self.device)
+        expected_distribution = expected_distribution.to(self.device)
         # todo: cleen checks
         print('check 1')
         try:
