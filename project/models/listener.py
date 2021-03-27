@@ -222,13 +222,12 @@ class LiteralListener(ColorListener):
         """
         print('check 0')
         self.model.to(self.device)
-        batch.to(self.device)
         y_batch = batch[2]
         seq_lengths = batch[1]
         # for utterances we use the last item from batch where the first symbol of sentence initiation has been dropped
         X_batch = batch[0]
         batch_preds = self.model(color_seqs=y_batch, word_seqs=X_batch, seq_lengths=seq_lengths)
-
+        batch_preds.to(self.device)
         # The expected distribution should be [0, 0, 1] giving a 1 probability to the last color, which is by
         # construction the target color
         expected_distribution = torch.ones(self.batch_size, dtype=int) * 2

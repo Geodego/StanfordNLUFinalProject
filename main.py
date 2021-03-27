@@ -27,7 +27,8 @@ if __name__ == '__main__':
                    'hidden_dim': 100, 'n_attention': 1, 'num_layers': 1}
     param_grid = {'eta': [0.001, 0.005, 0.01, 0.015], 'feedforward_size': [75, 200, 400, 600]}
 
-    output = task.train_and_save_agent(hyper_id=1, training_data_id=5, save_memory=False)
+    output = task.train_and_save_agent(hyper_id=1, training_data_id=5, save_memory=False,
+                                       corpus_word_count=2, save_agent=False)
     output = task.load_trained_model(trained_agent_id=3)
     model, colors_dev, seqs_dev = (output[k] for k in ['model', 'colors_dev', 'seqs_dev'])
     # seqs_predicted = model.predict(colors_dev)
