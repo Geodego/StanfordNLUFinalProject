@@ -25,7 +25,7 @@ class CaptionEncoder(WordEmbedding):
     For more details on the scoring see Monroe et al., 2017.
     """
 
-    def __init__(self, hidden_dim, color_dim, *args, **kwargs):
+    def __init__(self, hidden_dim, color_dim, device=None, *args, **kwargs):
         """
         Initializes CaptionEncoder.
         This initialization is based on the released code from Monroe et al., 2017.
@@ -37,6 +37,9 @@ class CaptionEncoder(WordEmbedding):
                 color_phi_fourier with resolution 3.)
         """
         super(CaptionEncoder, self).__init__(*args, **kwargs)
+        if device is None:
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.device = torch.device(device)
         self.hidden_dim = hidden_dim
         # todo:
         # Various notes based on Will Monroe's code
@@ -55,7 +58,7 @@ class CaptionEncoder(WordEmbedding):
         # we also initialize the bias to be the identity bc that's what Will does
         covar_dim = color_dim * color_dim
         self.covariance = nn.Linear(2 * hidden_dim, covar_dim)
-        self.covariance.bias.data = torch.tensor(np.eye(color_dim), dtype=torch.float).flatten()
+        self.covariance.bias.data = torch.tensor(np.eye(color_dim), dtype=torch.float).flatten().to(device)
         #self.logsoftmax = nn.LogSoftmax(dim=0)
 
         self.color_dim = color_dim
@@ -84,6 +87,7 @@ class CaptionEncoder(WordEmbedding):
         else:
             embeddings = word_seqs
 
+        embeddings.to(self.device)
         # pack sequence for performance
         embeddings = nn.utils.rnn.pack_padded_sequence(embeddings, batch_first=True, lengths=seq_lengths,
                                                        enforce_sorted=False)
@@ -92,6 +96,7 @@ class CaptionEncoder(WordEmbedding):
 
         # unpack
         output, seq_lengths = nn.utils.rnn.pad_packed_sequence(output, batch_first=True)
+        output.to(self.device)
 
         # we only care about last output (first dim is batch size)
         # todo: improve by taking into account all steps, by taking average hidden states or building attention
