@@ -133,7 +133,7 @@ class CaptionEncoder(WordEmbedding):
 
 class LiteralListener(ColorListener):
 
-    def __init__(self, vocab, color_dim=54, **base_kwargs):
+    def __init__(self, vocab, color_dim=54, device=None, **base_kwargs):
         """
         Neural listener. Consumes captions and returns a probability distribution for the three
         colors of being the target color.
@@ -143,10 +143,14 @@ class LiteralListener(ColorListener):
         self.model = None
         self.loss = nn.CrossEntropyLoss()
         self.build_graph()
+        if device is None:
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.device = torch.device(device)
 
     def build_graph(self):
         self.model = CaptionEncoder(embed_dim=self.embed_dim, hidden_dim=self.hidden_dim, vocab_size=self.vocab_size,
                                     color_dim=self.color_dim, embedding=self.embedding)
+        self.model.to(self.device)
         return self.model
 
     def predict(self, color_seqs, word_seqs, device=None):
@@ -226,6 +230,7 @@ class LiteralListener(ColorListener):
         # The expected distribution should be [0, 0, 1] giving a 1 probability to the last color, which is by
         # construction the target color
         expected_distribution = torch.ones(self.batch_size, dtype=int) * 2
+        expected_distribution.to(self.device)
 
         try:
             err = self.loss(batch_preds, expected_distribution)
@@ -233,6 +238,7 @@ class LiteralListener(ColorListener):
             # last iteration of the batch has smaller dimension than self.batch_size
             current_size = X_batch.shape[0]
             expected_distribution = torch.ones(current_size, dtype=int) * 2
+            expected_distribution.to(self.device)
             err = self.loss(batch_preds, expected_distribution)
         return err
 
