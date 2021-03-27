@@ -235,7 +235,13 @@ class LiteralListener(ColorListener):
         # todo: cleen checks
         print('check 1')
         try:
-            err = self.loss(batch_preds, expected_distribution)
+            print(batch_preds.device)
+            print(expected_distribution.device)
+            try:
+                err = self.loss(batch_preds, expected_distribution)
+            except Exception:
+                print('exception generated')
+                exit()
         except ValueError:
             # last iteration of the batch has smaller dimension than self.batch_size
             current_size = X_batch.shape[0]
