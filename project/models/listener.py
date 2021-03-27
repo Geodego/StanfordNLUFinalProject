@@ -146,6 +146,7 @@ class LiteralListener(ColorListener):
         if device is None:
             device = "cuda" if torch.cuda.is_available() else "cpu"
         self.device = torch.device(device)
+        print(self.device)
 
     def build_graph(self):
         self.model = CaptionEncoder(embed_dim=self.embed_dim, hidden_dim=self.hidden_dim, vocab_size=self.vocab_size,
@@ -221,6 +222,7 @@ class LiteralListener(ColorListener):
         :param batch:
         """
         print('check 0')
+        print(self.device)
         self.model.to(self.device)
         y_batch = batch[2]
         seq_lengths = batch[1]
