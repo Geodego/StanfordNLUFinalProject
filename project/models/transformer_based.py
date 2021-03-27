@@ -228,7 +228,7 @@ class TransformerDescriber(ContextualColorDescriber):
         # Convert all the predictions from indices to elements of
         # `self.vocab`:
         #todo: debug below
-        best_beam = torch.cat(best_beam, axis=1)
+        #best_beam = torch.cat(best_beam, axis=1)
         preds = [self._convert_predictions(p) for p in best_beam]
 
         self.model.to(self.device)

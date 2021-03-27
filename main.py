@@ -27,7 +27,7 @@ if __name__ == '__main__':
                    'hidden_dim': 100, 'n_attention': 1, 'num_layers': 1}
     param_grid = {'eta': [0.001, 0.005, 0.01, 0.015], 'feedforward_size': [75, 200, 400, 600]}
 
-    # output = task.train_and_save_agent(hyper_id=3, training_data_id=3, save_memory=True)
+    # output = task.train_and_save_agent(hyper_id=3, training_data_id=6, save_memory=False)
     output = task.load_trained_model(trained_agent_id=3)
     model, colors_dev, seqs_dev = (output[k] for k in ['model', 'colors_dev', 'seqs_dev'])
     # seqs_predicted = model.predict(colors_dev)
@@ -36,6 +36,7 @@ if __name__ == '__main__':
     # score = model.evaluate(colors_dev, seqs_predicted)
     score = model.evaluate(colors_dev_reduced, seqs_beam)
     pass
+
     # 2nd round: no glove
     param_fixed = {'early_stopping': True, 'optimizer': 'Adam', 'glove_dim': None, 'batch_size': 256,
                   'num_layers': 1, 'hidden_dim': 128, 'eta': 0.001}
