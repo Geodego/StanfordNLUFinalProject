@@ -25,7 +25,7 @@ class CaptionEncoder(WordEmbedding):
     For more details on the scoring see Monroe et al., 2017.
     """
 
-    def __init__(self, hidden_dim, color_dim, *args, **kwargs):
+    def __init__(self, hidden_dim, color_dim, device=None, *args, **kwargs):
         """
         Initializes CaptionEncoder.
         This initialization is based on the released code from Monroe et al., 2017.
@@ -37,6 +37,9 @@ class CaptionEncoder(WordEmbedding):
                 color_phi_fourier with resolution 3.)
         """
         super(CaptionEncoder, self).__init__(*args, **kwargs)
+        if device is None:
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.device = torch.device(device)
         self.hidden_dim = hidden_dim
         # todo:
         # Various notes based on Will Monroe's code
@@ -55,7 +58,7 @@ class CaptionEncoder(WordEmbedding):
         # we also initialize the bias to be the identity bc that's what Will does
         covar_dim = color_dim * color_dim
         self.covariance = nn.Linear(2 * hidden_dim, covar_dim)
-        self.covariance.bias.data = torch.tensor(np.eye(color_dim), dtype=torch.float).flatten()
+        self.covariance.bias.data = torch.tensor(np.eye(color_dim), dtype=torch.float).flatten().to(device)
         #self.logsoftmax = nn.LogSoftmax(dim=0)
 
         self.color_dim = color_dim
@@ -84,6 +87,7 @@ class CaptionEncoder(WordEmbedding):
         else:
             embeddings = word_seqs
 
+        embeddings.to(self.device)
         # pack sequence for performance
         embeddings = nn.utils.rnn.pack_padded_sequence(embeddings, batch_first=True, lengths=seq_lengths,
                                                        enforce_sorted=False)
@@ -92,6 +96,7 @@ class CaptionEncoder(WordEmbedding):
 
         # unpack
         output, seq_lengths = nn.utils.rnn.pad_packed_sequence(output, batch_first=True)
+        output.to(self.device)
 
         # we only care about last output (first dim is batch size)
         # todo: improve by taking into account all steps, by taking average hidden states or building attention
@@ -128,7 +133,7 @@ class CaptionEncoder(WordEmbedding):
 
 class LiteralListener(ColorListener):
 
-    def __init__(self, vocab, color_dim=54, **base_kwargs):
+    def __init__(self, vocab, color_dim=54, device=None, **base_kwargs):
         """
         Neural listener. Consumes captions and returns a probability distribution for the three
         colors of being the target color.
@@ -138,10 +143,14 @@ class LiteralListener(ColorListener):
         self.model = None
         self.loss = nn.CrossEntropyLoss()
         self.build_graph()
+        if device is None:
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.device = torch.device(device)
 
     def build_graph(self):
         self.model = CaptionEncoder(embed_dim=self.embed_dim, hidden_dim=self.hidden_dim, vocab_size=self.vocab_size,
                                     color_dim=self.color_dim, embedding=self.embedding)
+        self.model.to(self.device)
         return self.model
 
     def predict(self, color_seqs, word_seqs, device=None):
@@ -217,17 +226,18 @@ class LiteralListener(ColorListener):
         # for utterances we use the last item from batch where the first symbol of sentence initiation has been dropped
         X_batch = batch[0]
         batch_preds = self.model(color_seqs=y_batch, word_seqs=X_batch, seq_lengths=seq_lengths)
-
+        batch_preds.to(self.device)
         # The expected distribution should be [0, 0, 1] giving a 1 probability to the last color, which is by
         # construction the target color
         expected_distribution = torch.ones(self.batch_size, dtype=int) * 2
-
+        expected_distribution = expected_distribution.to(self.device)
         try:
             err = self.loss(batch_preds, expected_distribution)
         except ValueError:
             # last iteration of the batch has smaller dimension than self.batch_size
             current_size = X_batch.shape[0]
             expected_distribution = torch.ones(current_size, dtype=int) * 2
+            expected_distribution = expected_distribution.to(self.device)
             err = self.loss(batch_preds, expected_distribution)
         return err
 

@@ -86,7 +86,7 @@ class TaskHandler:
         return output
 
     def train_and_save_agent(self, hyper_id: int, training_data_id: int, save_memory=False, corpus_word_count=None,
-                             silent=False):
+                             silent=False, save_agent=True):
         """
 
         :param hyper_id: id in table HyperParameters in ColorDB.
@@ -116,7 +116,8 @@ class TaskHandler:
         # save the trained agent parameters
         file_name = "trained_agent_{}".format(trained_agent_id)
         trained_model = output['model'].model
-        save_model(trained_model, file_name)
+        if save_agent:
+            save_model(trained_model, file_name)
 
     def load_trained_model(self, trained_agent_id, corpus_word_count=None):
         hyper_param_id, training_data_id = (ColorDB().read_trained_agent(trained_agent_id)[k]
