@@ -129,6 +129,20 @@ class TaskHandler:
         agent.model = load_model_states(agent.model, file_params, device=agent.device)
         return agent_data
 
+    def eval_speaker_with_listener(self, trained_id_speaker, trained_id_listener):
+        speaker_data = self.load_trained_model(trained_id_speaker)
+        listener_data = self.load_trained_model(trained_id_listener)
+        speaker, colors_dev, seqs_dev = (speaker_data[k] for k in ['model', 'colors_dev', 'seqs_dev'])
+        listener = listener_data['model']
+
+        # greedy search prediction
+        seqs_predicted = speaker.predict(colors_dev)
+        # beam search prediction
+        seqs_predicted_beam = speaker.predict_beam_search(colors_dev)
+        greedy_score = listener.evaluate(colors_dev, seqs_predicted)
+        beam_score = listener.evaluate(colors_dev, seqs_predicted_beam)
+        # todo: analyse split/close/far contexts
+
     def _get_hyper_parameters(self, hyper_id):
         hyper_params = ColorDB().read_hyper_parameters(hyper_id)
         model_class = self.models[hyper_params.pop('model')]
