@@ -1,4 +1,8 @@
-r"""
+"""
+This textual head implementation is adapted with minor modifications from
+`Virtex <https://github.com/kdexd/virtex>`_.
+"""
+"""
 A textual head accepts visual features from the visual backbone, and performs
 task specific modeling (captioning, classification etc.) to predict an output
 distribution over vocabulary tokens for one or multiple time-steps in the batch.

@@ -1,4 +1,4 @@
-r"""
+"""
 This Beam Search implementation is adapted with minor modifications from
 `AllenNLP <https://github.com/allenai/allennlp/blob/master/allennlp/nn/beam_search.py>`_.
 

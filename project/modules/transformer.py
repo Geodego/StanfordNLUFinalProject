@@ -1,3 +1,8 @@
+"""
+This textual head implementation is adapted with minor modifications from
+`Virtex <https://github.com/kdexd/virtex>`_.
+"""
+
 from torch import nn
 
 

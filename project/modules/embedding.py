@@ -5,8 +5,7 @@ from torch import nn
 
 
 class WordAndPositionalEmbedding(nn.Module):
-    r"""
-    # todo: Virtex
+    """
     A :class:`~torch.nn.Module` for learned word embeddings and position
     embeddings for input tokens. Each token is mapped to a fixed dimensional
     word embedding; and corresponding positional embedding based on its index.

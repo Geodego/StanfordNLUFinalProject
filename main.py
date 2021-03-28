@@ -1,7 +1,6 @@
 from project.object.task_handler import TaskHandler
 from project.data.study.database import ColorDB
 
-
 if __name__ == '__main__':
     task = TaskHandler()
     # output = task.initialize_optimal_agent(hyper_id=3, action='hyper', corpus_word_count=2)
