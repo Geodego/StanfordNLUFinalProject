@@ -1,6 +1,6 @@
 """
 Model for a pragmatic speaker, anticipating the listener reaction to its
-utterances in chosing the right describtion of colors in context
+utterances in chosing the right describtion of colors in context. For further developments not used for paper.
 """
 import torch
 from torch import nn

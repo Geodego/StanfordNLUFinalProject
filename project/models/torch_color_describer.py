@@ -5,6 +5,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.utils.data
+import pandas as pd
 
 from .agents_base import ColorSpeaker
 from ..utils import utils
@@ -539,6 +540,54 @@ class ContextualColorDescriber(ColorSpeaker):
             min_perp, pred, pred_index = self.listener_predict_one(color_seq, word_seq, device=device)
             correct += int(target_index == pred_index)
         return correct / len(color_seqs)
+
+    def get_all_results(self, color_seqs, word_seqs, device=None):
+        """
+        Returns a list of results for all examples with 1 if the listener successfully finds the target color and 0
+        otherwise.
+        """
+        results = []
+        for color_seq, word_seq in zip(color_seqs, word_seqs):
+            target_index = len(color_seq) - 1
+            min_perp, pred, pred_index = self.listener_predict_one(color_seq, word_seq, device=device)
+            results.append(int(target_index == pred_index))
+        return results
+
+    def get_listener_accuracy_per_condition(self, color_seqs, word_seqs, conditions, device=None):
+        """
+                Returns a DataFame with listener_accuracy per condition
+
+                Parameters
+                ----------
+                color_seqs : list of lists of list of floats, or np.array
+                    Dimension (m, n, p) where m is the number of examples, n is
+                    the number of colors in each context, and p is the length
+                    of the color representations.
+
+                word_seqs : list of list of int
+                    Dimension m, the number of examples, and the length of
+                    each sequence can vary.
+
+                conditions: list of condition corresponding to the color sequences in color-seqs (
+
+                device: str or None
+                    Allows the user to temporarily change the device used
+                    during prediction. This is useful if predictions require a
+                    lot of memory and so are better done on the CPU. After
+                    prediction is done, the model is returned to `self.device`.
+
+                Returns
+                -------
+                DataFame with listener_accuracy per condition, columns ['result'] which is the listener accuracy and
+                rows ['split', 'close', 'far']
+
+                """
+        results = self.get_all_results(color_seqs, word_seqs, device=device)
+        df = pd.DataFrame([conditions, results]).T
+        df.rename(columns={0: 'condition', 1: 'result'}, inplace=True)
+        df = df.astype({'result': 'int32'})
+        summary = df.groupby('condition').mean()
+        return summary
 
     def score(self, color_seqs, word_seqs, device=None):
         """

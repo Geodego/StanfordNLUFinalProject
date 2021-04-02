@@ -1,5 +1,5 @@
 """
-This textual head implementation is adapted with minor modifications from
+This class is adapted with minor modifications from
 `Virtex <https://github.com/kdexd/virtex>`_.
 """
 
@@ -7,7 +7,7 @@ from torch import nn
 
 
 class PreNormTransformerDecoderLayer(nn.TransformerDecoderLayer):
-    r"""
+    """
     A variant of :class:`torch.nn.TransformerDecoderLayer` where layer
     normalization is included inside the residual branch, and performed before
     self-attention and feedforward layers.

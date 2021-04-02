@@ -8,7 +8,8 @@ from project.utils.tools import load_model_states
 
 def initialize_agent(agent, action, corpus_word_count=None, eta=0.001, batch_size=1024,
                      glove_dim=None, hidden_dim=None, prev_split=None, split_rate=None, max_iter=None, n_attention=1,
-                     num_layers=1, feed_forward_size=75, early_stopping=False, optimizer='Adam', **kwargs):
+                     num_layers=1, feed_forward_size=75, early_stopping=False, optimizer='Adam',
+                     training_data_id=None, **kwargs):
     """
 
     :param agent:
@@ -25,6 +26,8 @@ def initialize_agent(agent, action, corpus_word_count=None, eta=0.001, batch_siz
     :param optimizer:
     :param early_stopping:
     :param action: 'train', 'train_speaker', 'train_listener', 'hyper' or 'test'
+    :param training_data_id: when action = 'test' we need to know on which data the agent has been trained to load
+        it properly.
     :param kwargs: additional params for the model used
     :return:
     Initialized model with organised data
@@ -36,16 +39,11 @@ def initialize_agent(agent, action, corpus_word_count=None, eta=0.001, batch_siz
     """
     if action != 'test':
         colors_train, seqs_train, colors_dev, seqs_dev, rawcolors_dev, texts_dev, train_vocab = process_data(
-            action=action,
-            corpus_word_count=corpus_word_count,
-            prev_split=prev_split,
-            split_rate=split_rate)
+            action=action, corpus_word_count=corpus_word_count, prev_split=prev_split, split_rate=split_rate)
     else:
         colors_test, seqs_test, train_vocab = process_data(
-            action=action,
-            corpus_word_count=corpus_word_count,
-            prev_split=prev_split,
-            split_rate=split_rate)
+            action=action, corpus_word_count=corpus_word_count, prev_split=prev_split,
+            split_rate=split_rate, training_used=training_data_id)
 
     # If glove_gim is not None we use a Glove embedding and we need to modify the vocabulary accordingly
     embedding, vocab = load_embedding(glove_dim=glove_dim, vocab=train_vocab)

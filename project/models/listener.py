@@ -1,65 +1,40 @@
 import torch
 import numpy as np
+import pandas as pd
 from torch import nn
 from .agents_base import ColorListener
 from ..modules.embedding import WordEmbedding
-from .torch_model_base import TorchModelBase
-
-# todo: handle below, template
 
 
 class CaptionEncoder(WordEmbedding):
     """
-    Implements the Monroe et al., 2017 color caption encoder.
-    The CaptionEncoder takes a list of possible colors and a
-    caption and converts the caption into a distribution over
-    the colors. The color with the most probability mass is
-    most likely to be refered to by the caption.
-
-    To do this, the network first embeds the caption into a
-    vector space, then it runs an LSTM over the vectors.
-    From the last hidden state it produces a mean vector and
-    covariance matrix giving a gaussian distribution over
-    the color space. This vector and matrix are used to
-    score each candidate color and these scores are softmaxed.
-    For more details on the scoring see Monroe et al., 2017.
+    Implements the Monroe et al., 2017 color caption encoder. The CaptionEncoder takes a list of possible colors and a
+    caption and converts the caption into a distribution over the colors.
     """
 
     def __init__(self, hidden_dim, color_dim, device=None, *args, **kwargs):
         """
-        Initializes CaptionEncoder.
-        This initialization is based on the released code from Monroe et al., 2017.
-        Further inline comments explain how this code differs.
-        Args:
-            hidden_dim - dimension used for the hidden state of the LSTM. Should be 100.
-            color_dim - number of dimensions of the input color vectors, the mean
-                vector and the covariance matrix. Usually will be 54 (if using
-                color_phi_fourier with resolution 3.)
+
+        :param hidden_dim: dimension used for the hidden state of the LSTM.
+        :param color_dim: number of dimensions of the input color vectors, the mean
+                vector and the covariance matrix. Usually will be 54.
+        :param device:
+        :param args:
+        :param kwargs:
         """
         super(CaptionEncoder, self).__init__(*args, **kwargs)
         if device is None:
             device = "cuda" if torch.cuda.is_available() else "cpu"
         self.device = torch.device(device)
         self.hidden_dim = hidden_dim
-        # todo:
-        # Various notes based on Will Monroe's code
-        # should initialize bias to 0:
-        # https://github.com/futurulus/colors-in-context/blob/2e7b830668cd039830154e7e8f211c6d4415d30f/listener.py#L383
-        # √ he also DOESN'T use dropout for the base listener
-        # also non-linearity is "leaky_rectify" - I can't implement this without rewriting lstm :(, so I'm just going
-        # to hope this isn't a problem
-        # √ also LSTM is bidirectional :
-        # https://github.com/futurulus/colors-in-context/blob/2e7b830668cd039830154e7e8f211c6d4415d30f/listener.py#L713
 
         self.lstm = nn.LSTM(self.embed_dim, hidden_dim, bidirectional=True, batch_first=True)
 
         self.mean = nn.Linear(2 * hidden_dim, color_dim)
-        # covariance matrix is square, so we initialize it with color_dim^2 dimensions
-        # we also initialize the bias to be the identity bc that's what Will does
+
         covar_dim = color_dim * color_dim
         self.covariance = nn.Linear(2 * hidden_dim, covar_dim)
         self.covariance.bias.data = torch.tensor(np.eye(color_dim), dtype=torch.float).flatten().to(device)
-        #self.logsoftmax = nn.LogSoftmax(dim=0)
 
         self.color_dim = color_dim
         self.hidden_dim = hidden_dim
@@ -99,8 +74,6 @@ class CaptionEncoder(WordEmbedding):
         output.to(self.device)
 
         # we only care about last output (first dim is batch size)
-        # todo: improve by taking into account all steps, by taking average hidden states or building attention
-        #  mechanism
         # here we are concatenating the the last output vector of the forward direction (at index -1)
         # and the last output vector of the first direction (at index 0)
         output = torch.cat((output[:, -1, :self.hidden_dim],
@@ -116,13 +89,11 @@ class CaptionEncoder(WordEmbedding):
         diff_from_mean = color_seqs - output_mean
         scores = torch.matmul(diff_from_mean, covar_matrix)
         diff_transpose = diff_from_mean.transpose(1, 2)
-        scores = torch.matmul(scores, diff_transpose) # dim=(batch_size, 3, color_dim) where 3 is the nber of colors
-        #scores = -torch.diag(scores)
+        scores = torch.matmul(scores, diff_transpose)  # dim=(batch_size, 3, color_dim) where 3 is the nber of colors
+
         # we just need the diagonals for each matrix per batch
         # to do check if shuld be minus
         scores = -torch.diagonal(scores, dim1=-1, dim2=-2)  # dim=(batch_size, 3)
-        #distribution = self.logsoftmax(scores)
-        #return distribution
         return scores
 
     def init_hidden_and_context(self):
@@ -205,6 +176,52 @@ class LiteralListener(ColorListener):
         accuracy = correct_predictions / color_predicted.shape[0]
         return {'accuracy': accuracy}
 
+    def get_all_results(self, color_seqs, word_seqs, device=None):
+        """
+        Returns a list of results for all examples with 1 if the listener successfully finds the target color and 0
+        otherwise.
+        """
+        probabilities = self.predict(color_seqs, word_seqs, device=device)
+        color_predicted = torch.argmax(probabilities, dim=1)
+        results = (color_predicted == 2).numpy().astype('int').tolist()
+        return results
+
+    def get_listener_accuracy_per_condition(self, color_seqs, word_seqs, conditions, device=None):
+        """
+                Returns a DataFame with listener_accuracy per condition
+
+                Parameters
+                ----------
+                color_seqs : list of lists of list of floats, or np.array
+                    Dimension (m, n, p) where m is the number of examples, n is
+                    the number of colors in each context, and p is the length
+                    of the color representations.
+
+                word_seqs : list of list of int
+                    Dimension m, the number of examples, and the length of
+                    each sequence can vary.
+
+                conditions: list of condition corresponding to the color sequences in color-seqs (
+
+                device: str or None
+                    Allows the user to temporarily change the device used
+                    during prediction. This is useful if predictions require a
+                    lot of memory and so are better done on the CPU. After
+                    prediction is done, the model is returned to `self.device`.
+
+                Returns
+                -------
+                DataFame with listener_accuracy per condition, columns ['result'] which is the listener accuracy and
+                rows ['split', 'close', 'far']
+
+                """
+        results = self.get_all_results(color_seqs, word_seqs, device=device)
+        df = pd.DataFrame([conditions, results]).T
+        df.rename(columns={0: 'condition', 1: 'result'}, inplace=True)
+        df = df.astype({'result': 'int32'})
+        summary = df.groupby('condition').mean()
+        return summary
+
     def score(self, color_seqs, word_seqs, device=None):
         """
         Alias for `listener_accuracy`. This method is included to
@@ -240,4 +257,3 @@ class LiteralListener(ColorListener):
             expected_distribution = expected_distribution.to(self.device)
             err = self.loss(batch_preds, expected_distribution)
         return err
-

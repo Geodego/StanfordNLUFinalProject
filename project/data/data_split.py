@@ -33,18 +33,6 @@ def get_color_split(action: str = 'train', corpus_word_count: int = None, prev_s
     :return:
     return tuple of 2 lists if action is 'test'  or tuple of 4 lists in oll other cases
     """
-    # if prev_split:
-    #     corpus = ColorsCorpusReader(
-    #         COLORS_SRC_FILENAME,
-    #         word_count=corpus_word_count,
-    #         normalize_colors=True)
-    #     examples = list(corpus.read())
-    #     rawcols, texts = zip(*[[ex.colors, ex.contents] for ex in examples])
-    #
-    #     # split the data
-    #     rawcols_train, rawcols_test, texts_train, texts_test = train_test_split(rawcols, texts, random_state=0)
-    #     return rawcols_train, texts_train, rawcols_test, texts_test
-
     files = get_files(action)
     output = tuple()
     for file in files:
@@ -122,7 +110,9 @@ def process_data(action: str = 'train', corpus_word_count: int = None, prev_spli
         return colors_train, seqs_train, colors_dev, seqs_dev, rawcolors_dev, texts_dev, train_vocab
 
     elif action == 'test':
-        rawcolors_train, texts_train, _, _ = get_color_split(action=training_used,
+        actions = {3: 'train', 5: 'train_listener', 6: 'train_speaker'}
+        training_action = actions[training_used]
+        rawcolors_train, texts_train, _, _ = get_color_split(action=training_action,
                                                              corpus_word_count=corpus_word_count,
                                                              prev_split=prev_split,
                                                              split_rate=split_rate)
@@ -160,3 +150,20 @@ def build_corpus_repartition(path_list):
     df_list = [df_train, df_dev, df_test, df_speaker, df_listener, df_hyper]
     for frame, path in zip(df_list, path_list):
         frame.to_csv(path, header=True, index=False)
+
+
+def get_dev_conditions():
+    """
+    Return the conditions ('split', 'close', 'far') for all examplesin the dev dataset.
+    """
+    # Get the dev corpus
+    file = get_files('train')[1]
+    # get data from corpus
+    corpus = ColorsCorpusReader(
+        file,
+        word_count=None,
+        normalize_colors=True)
+    examples = list(corpus.read())
+    conditions = [ex.condition for ex in examples]
+
+    return conditions

@@ -7,8 +7,7 @@ import functools
 
 class TransformerDescriber(ContextualColorDescriber):
     """
-    Base color describer, encoder initializes embedding, doesn't handle the colorized feature of HW4 yet
-    embeddings: pretrained embeddings
+    Transformer based speaker.
     """
 
     def __init__(self, *args, num_layers=1, n_attention=None, feedforward_size=None,
@@ -27,13 +26,11 @@ class TransformerDescriber(ContextualColorDescriber):
         self.max_caption_length = max_caption_length
         super(TransformerDescriber, self).__init__(*args, **kwargs)
         self.beam_search = AutoRegressiveBeamSearch(
-            self.end_index, beam_size=2, max_steps=max_decoding_steps
+            self.end_index, beam_size=5, max_steps=max_decoding_steps
         )
 
     def build_graph(self):
 
-        # We didn't modify the encoder, so this is
-        # just copied over from the original:
         encoder = Encoder(
             color_dim=self.color_dim,
             hidden_dim=self.hidden_dim)
@@ -141,72 +138,6 @@ class TransformerDescriber(ContextualColorDescriber):
 
         return preds
 
-    def beam_search_prev(self, color_seqs, max_length=20, beam_size=2, device=None):
-        """
-        Predict new sequences based on the color contexts in
-        `color_seqs` using beam search.
-        :param color_seqs:
-        :param max_length:
-        :param device:
-        :param beam_size:
-        :return:
-        """
-        # todo: remove?
-        device = self.device if device is None else torch.device(device)
-
-        color_seqs = torch.FloatTensor(color_seqs)
-        color_seqs = color_seqs.to(device)
-
-        self.model.to(device)
-
-        self.model.eval()
-
-        beam_pred = []  # store the captions for beam search
-        beam_proba = [[1] for i in range(beam_size)]   # store the probabilities of captions in beam_pred
-
-        with torch.no_grad():
-            # Get the hidden representations from the color contexts:
-            try:
-                hidden = self.model.encoder(color_seqs)
-            except AttributeError:
-                # we are in RSASpeakerListener model
-                hidden = self.model.encoder_decoder.encoder(color_seqs)
-
-            # Start with START_SYMBOL for all examples:
-            decoder_input = [[self.start_index]] * len(color_seqs)
-            decoder_input = [decoder_input] * beam_size  # add one dimension so that we can handle beam search
-            decoder_input = torch.LongTensor(decoder_input)
-            decoder_input = decoder_input.to(device)
-
-            beam_pred.append(decoder_input)
-
-            # Now move through the remaiming timesteps using the
-            # previous timestep to predict the next one:
-            for i in range(1, max_length):
-                output = self.model(
-                    color_seqs=color_seqs,
-                    word_seqs=decoder_input,
-                    seq_lengths=None,
-                    hidden=hidden)
-
-                # Always take the  beam_size highest probability token to
-                # be the prediction:
-                p = torch.topk(output, k=beam_size)
-                # get the last word predicted
-                last_word = p[:, -1].reshape(-1, 1)
-                beam_pred.append(last_word)
-                #todo: finish beam search here
-                decoder_input = torch.cat((decoder_input, last_word), 1)
-
-        # Convert all the predictions from indices to elements of
-        # `self.vocab`:
-        preds = torch.cat(preds, axis=1)
-        preds = [self._convert_predictions(p) for p in preds]
-
-        self.model.to(self.device)
-
-        return preds
-
     def predict_beam_search(self, color_seqs, device=None):
         device = self.device if device is None else torch.device(device)
 
@@ -224,28 +155,27 @@ class TransformerDescriber(ContextualColorDescriber):
         all_top_k_predictions, _ = self.beam_search.search(
             start_predictions, beam_search_step
         )
-        best_beam = all_top_k_predictions[:, 0, :]
+        best_beam = all_top_k_predictions[:, 0, :]  # shape: (batch size, beam_size, max_length)
+
+        # add the start token to all predictions:
+        start_tensor = (torch.ones(batch_size) * self.start_index).to(device).reshape((batch_size, -1))
+        best_beam = torch.cat([start_tensor, best_beam], dim=1)
+
         # Convert all the predictions from indices to elements of
         # `self.vocab`:
-        #todo: debug below
-        #best_beam = torch.cat(best_beam, axis=1)
         preds = [self._convert_predictions(p) for p in best_beam]
 
         self.model.to(self.device)
         return preds
 
-    def beam_search_step(
-        self, visual_features: torch.Tensor, partial_captions: torch.Tensor
-    ) -> torch.Tensor:
-        #todo: keep?
-        r"""
+    def beam_search_step(self, visual_features: torch.Tensor, partial_captions: torch.Tensor) -> torch.Tensor:
+        """
         Given visual features and a batch of (assumed) partial captions, predict
-        the distribution over vocabulary tokens for next time-step. This method
-        is used by :class:`~virtex.utils.beam_search.AutoRegressiveBeamSearch`.
+        the distribution over vocabulary tokens for next time-step.
 
         Parameters
         ----------
-        projected_visual_features: torch.Tensor
+        visual_features: torch.Tensor
             A tensor of shape ``(batch_size, ..., textual_feature_size)``
             with visual features already projected to ``textual_feature_size``.
         partial_captions: torch.Tensor
@@ -261,7 +191,7 @@ class TransformerDescriber(ContextualColorDescriber):
         """
 
         # Expand and repeat image features while doing beam search.
-        batch_size, channels, height = visual_features.size()  # todo: check, remove width
+        batch_size, channels, height = visual_features.size()
         beam_size = int(partial_captions.size(0) / batch_size)
         if beam_size > 1:
             # shape: (batch_size * beam_size, channels, height)

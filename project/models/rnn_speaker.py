@@ -3,15 +3,9 @@ import torch
 import torch.nn as nn
 
 
-"""
-*****************************************************************************************************
-Speaker model used for assignment 4
-*****************************************************************************************************
-"""
-
-
 class ColorContextDecoder(Decoder):
     def __init__(self, color_dim, *args, **kwargs):
+        """GRU-based Speaker"""
         self.color_dim = color_dim
         super().__init__(*args, **kwargs)
 

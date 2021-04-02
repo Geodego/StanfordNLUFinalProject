@@ -1,22 +1,20 @@
 """
 This textual head implementation is adapted with minor modifications from
 `Virtex <https://github.com/kdexd/virtex>`_.
-"""
-"""
+
 A textual head accepts visual features from the visual backbone, and performs
 task specific modeling (captioning, classification etc.) to predict an output
 distribution over vocabulary tokens for one or multiple time-steps in the batch.
 """
 import torch
 from torch import nn
-from typing import Optional
 
 from .embedding import WordAndPositionalEmbedding, WordandPositionalEmbeddingFromPretrained
 from .transformer import PreNormTransformerDecoderLayer
 
 
 class TextualHead(nn.Module):
-    r"""
+    """
     Base class for all textual heads. All child classes can simply inherit
     from :class:`~torch.nn.Module`, however this is kept here for uniform
     type annotations.
@@ -50,66 +48,8 @@ class TextualHead(nn.Module):
         return self.hidden_size
 
 
-# class LinearTextualHead(TextualHead):
-#     r"""
-#     A textual head containing a single linear layer projecting from the visual
-#     feature size to the output vocabulary size.
-#
-#     Parameters
-#     ----------
-#     visual_feature_size: int
-#         Size (number of channels) of the input features from the visual backbone.
-#     vocab_size: int
-#         Number of tokens in the output vocabulary.
-#     """
-#
-#     def __init__(self, visual_feature_size: int, vocab_size: int, **kwargs):
-#         # For API consistency.
-#         hidden_size = visual_feature_size
-#         super().__init__(visual_feature_size, vocab_size, hidden_size)
-#         self.output = nn.Linear(visual_feature_size, vocab_size)
-#
-#     def forward(
-#             self,
-#             visual_features: torch.Tensor,
-#             caption_tokens: Optional[torch.Tensor] = None,
-#             caption_lengths: Optional[torch.Tensor] = None,
-#     ) -> torch.Tensor:
-#         r"""
-#         Project visual features directly to predict a distribution over
-#         vocabulary tokens through a single linear layer. This textual head
-#         ignores arguments ``caption_tokens`` and ``caption_lengths``, they
-#         are here for API consistency.
-#
-#         Parameters
-#         ----------
-#         visual_features: torch.Tensor
-#             A tensor of shape ``(batch_size, channels, height, width)`` containing
-#             features from visual backbone.
-#
-#         Returns
-#         -------
-#         torch.Tensor
-#             A tensor of shape ``(batch_size, vocab_size)`` containing output
-#             vocabulary logits.
-#         """
-#
-#         # Convert to NHWC and project visual features to textual feature size.
-#         batch_size, channels, height, width = visual_features.size()
-#         visual_features = visual_features.view(batch_size, channels, -1)
-#         visual_features = visual_features.permute(0, 2, 1)
-#
-#         # Perform global average pooling of visual features.
-#         # shape: (batch_size, channels)
-#         visual_features = visual_features.mean(dim=1)
-#
-#         # shape: (batch_size, max_caption_length, vocab_size)
-#         output_logits = self.output(visual_features)
-#         return output_logits
-
-
 class TransformerTextualHead(TextualHead):
-    r"""
+    """
     A textual head composed of four main modules: (1) input projection (linear
     layer) for visual features to match size with textual features, (2) word
     and positional embedding for input captions, (3) a unidirectional transformer
@@ -237,7 +177,7 @@ class TransformerTextualHead(TextualHead):
             caption_tokens: torch.Tensor,
             caption_lengths: torch.Tensor,
     ) -> torch.Tensor:
-        r"""
+        """
         Given (projected) visual features from visual backbone and caption
         tokens, predict the output logits for next time-step.
 
@@ -260,7 +200,6 @@ class TransformerTextualHead(TextualHead):
             containing output vocabulary logits for each time-step.
         """
 
-        # Convert to NHWC and project visual features to textual feature size.
         try:
             # assumes visual features are pictures
             batch_size, channels, height, width = visual_features.size()

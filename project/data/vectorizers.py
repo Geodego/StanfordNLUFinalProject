@@ -1,5 +1,5 @@
 """
-module imported from https://github.com/stanfordnlp/color-describer/blob/master/vectorizers.py
+module imported and adapted from https://github.com/stanfordnlp/color-describer/blob/master/vectorizers.py
 """
 
 import numpy as np

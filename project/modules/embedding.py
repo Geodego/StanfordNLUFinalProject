@@ -6,6 +6,7 @@ from torch import nn
 
 class WordAndPositionalEmbedding(nn.Module):
     """
+    This implementation is adapted with minor modifications from `Virtex <https://github.com/kdexd/virtex>`
     A :class:`~torch.nn.Module` for learned word embeddings and position
     embeddings for input tokens. Each token is mapped to a fixed dimensional
     word embedding; and corresponding positional embedding based on its index.
@@ -50,7 +51,7 @@ class WordAndPositionalEmbedding(nn.Module):
         self.dropout = nn.Dropout(p=dropout)
 
     def forward(self, tokens: torch.Tensor) -> torch.Tensor:
-        r"""
+        """
         Get combined word and positional embeddings for input tokens.
 
         Parameters
