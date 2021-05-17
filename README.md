@@ -1,3 +1,13 @@
+# Developing a Pragmatic framework based on Transformers
+
+### Geoffroy de Gournay
+
+## Abstract
+
+Some recent NLU papers focus on building a model attuned to the fact that humans live in a social physical environment and leverage that information. RSA based models have proved to offer an interesting framework for that purpose. These models need to handle the fact that when humans speak or listen, they always reason about other minds. Recent works have been using neural networks representing literal speakers and literal listeners, as building blocks for modelling more sophisticated pragmatic listeners and speakers. The neural speakers found in current RSA studies are encoder-decoders using RNNs. This study hypothesis is that speakers can be modelled more efficiently by using Transformers rather than RNNs. These models should especially help in the hardest cases, when the speaker needs to be more specific and needs to produce longer sentences. The intuition here, is that the powerful attention mechanisms used by Transformers, should help remembering the complex grounding aspects impacting language modelling throughout the whole process of building a sentence.
+
+## Usage instructions
+
 ### Main object used to execute tasks is TaskHandler
 It can be called with the following instruction:
 from project.object.task_handler import TaskHandler
