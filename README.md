@@ -1,9 +1,10 @@
 # Developing a Pragmatic framework based on Transformers
 
 
-### Geoffroy de Gournay
 
-**Study:** [pdf link](docs/final_paper.pdf)
+**Capstone project for Stanford course: Natural Language Understanding**
+
+**Paper:** [Standford NLP paper link](docs/final_paper.pdf)
 
 ## Project Description
 The present study analyzes comparatively a Transformer-based and an RNN-based architecture as building blocks for 
@@ -32,7 +33,10 @@ whole process of building a sentence.
 
 ### Main object used to execute tasks is TaskHandler
 It can be called with the following instruction:
+```python
 from project.object.task_handler import TaskHandler
+
+```
 
 
 ### Data Needed:
