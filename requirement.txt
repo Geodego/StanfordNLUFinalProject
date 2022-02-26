@@ -6,3 +6,4 @@ numpy~=1.19.2
 scikit-image~=0.17.2
 stanza~=1.2
 nltk~=3.5
+pytorch~=1.7.1
