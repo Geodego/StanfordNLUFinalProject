@@ -83,5 +83,5 @@ Reading from and writing to the database is done with class ColorDB found in pro
 * pytorch~=1.7.1
 
 ## Acknowledgments
-We would like to thank Professor Christopher Potts of Stanford Linguistics for discussing ideas with us about the 
+I would like to thank Professor Christopher Potts of Stanford Linguistics for discussing ideas with me about the 
 project direction.
